@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DEAD LINE — Subway Station FPS</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', monospace; }
+  #app { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; color: #e8f0e8; }
+
+  #crosshair {
+    position: absolute; left: 50%; top: 50%; width: 22px; height: 22px;
+    transform: translate(-50%, -50%);
+  }
+  #crosshair::before, #crosshair::after {
+    content: ''; position: absolute; background: rgba(255,255,255,0.85);
+  }
+  #crosshair::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
+  #crosshair::after { top: 50%; left: 0; height: 2px; width: 100%; transform: translateY(-50%); }
+
+  #hitmarker {
+    position: absolute; left: 50%; top: 50%; width: 26px; height: 26px;
+    transform: translate(-50%, -50%) rotate(45deg);
+    opacity: 0; transition: opacity 0.05s;
+  }
+  #hitmarker::before, #hitmarker::after {
+    content: ''; position: absolute; background: #ff4040;
+  }
+  #hitmarker::before { left: 50%; top: 0; width: 2px; height: 100%; transform: translateX(-50%); }
+  #hitmarker::after { top: 50%; left: 0; height: 2px; width: 100%; transform: translateY(-50%); }
+  #hitmarker.head::before, #hitmarker.head::after { background: #ffd23f; }
+
+  #ammo {
+    position: absolute; right: 34px; bottom: 26px;
+    font-size: 42px; font-weight: bold; color: #f2f6f2;
+    text-shadow: 0 0 8px rgba(0,0,0,0.9);
+  }
+  #wname {
+    position: absolute; right: 36px; bottom: 78px;
+    font-size: 15px; letter-spacing: 3px; color: #9fb8a4;
+  }
+  #reload {
+    position: absolute; left: 50%; top: 58%; transform: translateX(-50%);
+    color: #ffd23f; font-size: 16px; letter-spacing: 4px; display: none;
+    animation: blink 0.6s infinite alternate;
+  }
+  @keyframes blink { from { opacity: 0.4; } to { opacity: 1; } }
+
+  #hp-wrap {
+    position: absolute; left: 34px; bottom: 30px; width: 260px;
+  }
+  #hp-bar {
+    width: 100%; height: 14px; background: rgba(20,26,22,0.7);
+    border: 1px solid rgba(160,200,170,0.5);
+  }
+  #hp-fill {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, #b02020, #3fae4a);
+    transition: width 0.15s;
+  }
+  #hp-text { font-size: 13px; color: #9fb8a4; margin-top: 4px; }
+
+  #wave {
+    position: absolute; left: 50%; top: 24px; transform: translateX(-50%);
+    font-size: 20px; letter-spacing: 6px; color: #d8e4d8;
+    text-shadow: 0 0 10px rgba(0,0,0,0.9);
+  }
+  #score {
+    position: absolute; right: 34px; top: 24px;
+    font-size: 20px; color: #ffd23f; text-shadow: 0 0 10px rgba(0,0,0,0.9);
+  }
+
+  #banner {
+    position: absolute; left: 50%; top: 30%; transform: translateX(-50%);
+    font-size: 34px; letter-spacing: 10px; color: #fff;
+    text-shadow: 0 0 18px rgba(255,60,40,0.8);
+    opacity: 0; transition: opacity 0.4s;
+  }
+  #banner.show { opacity: 1; }
+
+  #vignette {
+    position: absolute; inset: 0; opacity: 0; transition: opacity 0.25s;
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(160,0,0,0.85) 100%);
+  }
+
+  #minimap-wrap {
+    position: absolute; right: 26px; bottom: 120px;
+    border: 1px solid rgba(120,160,180,0.4);
+    background: rgba(6,10,14,0.6);
+  }
+  #minimap-wrap .mm-label {
+    position: absolute; top: -20px; left: 0; font-size: 11px;
+    letter-spacing: 3px; color: #7fa0b4;
+  }
+
+  /* ---------- Overlays ---------- */
+  .overlay {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+    background: rgba(2,4,8,0.88); color: #dfe8df; z-index: 10;
+  }
+  .overlay h1 { font-size: 54px; letter-spacing: 14px; color: #fff; text-shadow: 0 0 24px rgba(255,50,30,0.9); }
+  .overlay h2 { font-size: 34px; letter-spacing: 8px; }
+  .overlay .sub { color: #8fa898; letter-spacing: 3px; }
+  .overlay button {
+    pointer-events: auto; cursor: pointer;
+    background: #17301f; color: #d8f0d8; border: 1px solid #4a7a55;
+    font-family: inherit; font-size: 18px; letter-spacing: 4px;
+    padding: 14px 44px;
+  }
+  .overlay button:hover { background: #245030; }
+  .controls { font-size: 13px; line-height: 2; color: #7f947f; text-align: center; }
+  .controls b { color: #cfe4cf; }
+  .lum-row { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #8fa898; }
+  input[type=range] { pointer-events: auto; width: 180px; }
+  #dead h2 { color: #ff5040; }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <div id="hud">
+    <div id="crosshair"></div>
+    <div id="hitmarker"></div>
+    <div id="wave">VAGUE 0</div>
+    <div id="score">0</div>
+    <div id="wname">M4 CARBINE</div>
+    <div id="ammo">30 / 180</div>
+    <div id="reload">RECHARGEMENT…</div>
+    <div id="hp-wrap">
+      <div id="hp-bar"><div id="hp-fill"></div></div>
+      <div id="hp-text">100</div>
+    </div>
+    <div id="minimap-wrap">
+      <span class="mm-label">TACTIQUE</span>
+      <canvas id="minimap" width="210" height="52"></canvas>
+    </div>
+    <div id="banner"></div>
+    <div id="vignette"></div>
+  </div>
+
+  <div id="menu" class="overlay">
+    <h1>DEAD LINE</h1>
+    <div class="sub">STATION CHATELET — 03:47 — IL NE FAUT PAS SORTIR DU QUAI</div>
+    <div class="controls">
+      <b>WASD</b> déplacement &nbsp;·&nbsp; <b>SOURIS</b> viser &nbsp;·&nbsp; <b>CLIC G</b> tirer<br/>
+      <b>MOLETTE</b> changer d'arme &nbsp;·&nbsp; <b>1-4</b> sélection directe &nbsp;·&nbsp; <b>R</b> recharger<br/>
+      <b>[</b> / <b>]</b> luminosité &nbsp;·&nbsp; <b>ÉCHAP</b> pause<br/>
+      <span style="color:#c9a227">M9 · M4 · M870 · M249 SAW (1000 balles)</span>
+    </div>
+    <div class="lum-row">LUMINOSITE <input id="lum" type="range" min="0.25" max="1.6" step="0.05" value="1" /></div>
+    <button id="start-btn">ENTRER DANS LA STATION</button>
+  </div>
+
+  <div id="pause" class="overlay" style="display:none">
+    <h2>PAUSE</h2>
+    <button id="resume-btn">REPRENDRE</button>
+  </div>
+
+  <div id="dead" class="overlay" style="display:none">
+    <h2>VOUS ÊTES MORT</h2>
+    <div class="sub">SCORE FINAL : <span id="final-score">0</span></div>
+    <button id="restart-btn">RECOMMENCER</button>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
