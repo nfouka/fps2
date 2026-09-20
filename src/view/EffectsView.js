@@ -143,6 +143,7 @@ export class EffectsView {
     bus.on('explosion', (e) => this.spawnBoom(e));
     bus.on('fire-pool', (e) => this.spawnPool(e));
     bus.on('crate-debris', (e) => this.spawnCrateDebris(e));
+    bus.on('crate-cleared', (e) => this.clearHolesInBox(e.min, e.max));
     bus.on('crate-holes', (e) => this.spawnCrateHoles(e));
   }
 
@@ -287,6 +288,19 @@ export class EffectsView {
     for (const h of e.holes) this.spawnCrateHole(h.p, h.dir);
   }
 
+  // efface les traces de balle situées dans la box d'une caisse détruite
+  clearHolesInBox(min, max) {
+    const m = 0.03;
+    for (const h of this.crateHoles) {
+      const p = h.mesh.position;
+      if (p.x >= min.x - m && p.x <= max.x + m &&
+          p.y >= min.y - m && p.y <= max.y + m &&
+          p.z >= min.z - m && p.z <= max.z + m) {
+        h.mesh.visible = false;
+      }
+    }
+  }
+
   spawnCrateDebris(e) {
     const c = e.pos;
     // puff de poussière à l'explosion de la caisse
@@ -366,26 +380,22 @@ export class EffectsView {
     }
     for (const d of this.debris) {
       if (d.resting) continue;
-      if (d.life > 0) {
-        d.life -= dt;
-        d.vel.y -= 14 * dt;
-        d.mesh.position.addScaledVector(d.vel, dt);
-        d.mesh.rotation.x += d.spin.x * dt;
-        d.mesh.rotation.y += d.spin.y * dt;
-        d.mesh.rotation.z += d.spin.z * dt;
-        const gy = groundHeight(d.mesh.position.x, d.mesh.position.z);
-        const r = d.mesh.scale.x * 0.05;
-        if (d.mesh.position.y < gy + r) {
-          d.mesh.position.y = gy + r;
-          if (d.vel.y < 0) d.vel.y = -d.vel.y * 0.3;
-          d.vel.x *= 0.5; d.vel.z *= 0.5;
-          if (Math.abs(d.vel.y) < 0.5) d.vel.set(0, 0, 0);
-        }
-        if (d.life <= 0) {
-          // le morceau pose sur le sol : il reste un débris visible
-          d.resting = true;
-        }
+      d.life -= dt;
+      d.vel.y -= 14 * dt;
+      d.mesh.position.addScaledVector(d.vel, dt);
+      d.mesh.rotation.x += d.spin.x * dt;
+      d.mesh.rotation.y += d.spin.y * dt;
+      d.mesh.rotation.z += d.spin.z * dt;
+      const gy = groundHeight(d.mesh.position.x, d.mesh.position.z);
+      const r = d.mesh.scale.x * 0.05;
+      if (d.mesh.position.y < gy + r) {
+        d.mesh.position.y = gy + r;
+        if (d.vel.y < 0) d.vel.y = -d.vel.y * 0.3;
+        d.vel.x *= 0.5; d.vel.z *= 0.5;
+        if (Math.abs(d.vel.y) < 0.5) d.vel.set(0, 0, 0);
       }
+      // ne se pose que s'il est déjà au sol : évite les débris qui flottent en l'air
+      if (d.life <= 0 && d.mesh.position.y <= gy + r + 0.02) d.resting = true;
     }
     for (const d of this.dust) {
       if (d.life > 0) {
