@@ -165,19 +165,19 @@ function buildMinigun() {
   part(g, new THREE.CylinderGeometry(0.078, 0.1, 0.18, 18), steel(0x26292e, 0.35, 0.85), 0, 0.01, -0.14, Math.PI / 2);
   part(g, new THREE.CylinderGeometry(0.045, 0.078, 0.11, 18), steel(0x1a1d21, 0.4, 0.8), 0, 0.01, -0.27, Math.PI / 2);
   part(g, new THREE.CylinderGeometry(0.028, 0.028, 0.05, 12), steel(0x111314, 0.4, 0.85), 0, 0.01, -0.35, Math.PI / 2);
-  // groupe de 6 canons lourds (entraîné à la rotation)
+  // groupe de 12 canons lourds (entraîné à la rotation)
   const bg = new THREE.Group();
   bg.name = 'barrels';
   bg.position.set(0, 0.01, -0.5);
-  for (let k = 0; k < 6; k++) {
-    const a = (k / 6) * Math.PI * 2;
-    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.82, 10), steel(0x15181c, 0.3, 0.9));
-    b.position.set(Math.sin(a) * 0.045, Math.cos(a) * 0.045, 0);
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * Math.PI * 2;
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.82, 10), steel(0x15181c, 0.3, 0.9));
+    b.position.set(Math.sin(a) * 0.064, Math.cos(a) * 0.064, 0);
     b.rotation.x = Math.PI / 2;
     bg.add(b);
     for (let i = 0; i < 7; i++) {
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.0175, 0.003, 6, 12), steel(0x22262b, 0.4, 0.8));
-      ring.position.set(Math.sin(a) * 0.045, Math.cos(a) * 0.045, -0.12 - i * 0.1);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.0185, 0.003, 6, 12), steel(0x22262b, 0.4, 0.8));
+      ring.position.set(Math.sin(a) * 0.064, Math.cos(a) * 0.064, -0.12 - i * 0.1);
       ring.rotation.y = Math.PI / 2;
       bg.add(ring);
     }
@@ -185,7 +185,7 @@ function buildMinigun() {
   const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.72, 8), steel(0x1b1e22, 0.4, 0.8));
   hub.rotation.x = Math.PI / 2; hub.position.set(0, 0.01, -0.5); bg.add(hub);
   // frein de bouche collectif
-  part(bg, new THREE.CylinderGeometry(0.06, 0.052, 0.07, 12), steel(0x191c20, 0.35, 0.85), 0, 0.01, -0.4, Math.PI / 2);
+  part(bg, new THREE.CylinderGeometry(0.09, 0.08, 0.07, 12), steel(0x191c20, 0.35, 0.85), 0, 0.01, -0.4, Math.PI / 2);
   g.add(bg);
   // boîte de transmission / carter arrière
   part(g, new THREE.CylinderGeometry(0.074, 0.074, 0.24, 16), steel(0x2a2e33, 0.45, 0.8), 0, 0.01, 0.02, Math.PI / 2);
