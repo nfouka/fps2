@@ -100,6 +100,23 @@ export function stripeTexture() {
   return c;
 }
 
+export function gunWoodTexture(base = [122, 82, 44]) {
+  const S = 128, [c, g] = makeCanvas(S, S);
+  g.fillStyle = `rgb(${base})`; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 30; i++) {
+    const y = Math.random() * S;
+    const d = (Math.random() * 44 - 22) | 0;
+    g.strokeStyle = `rgba(${base[0] + d},${base[1] + d},${base[2] + d},${0.25 + Math.random() * 0.4})`;
+    g.lineWidth = 0.8 + Math.random() * 2.4;
+    g.beginPath();
+    g.moveTo(0, y);
+    for (let x = 0; x <= S; x += 12) g.lineTo(x, y + Math.sin(x * 0.07 + i * 1.7) * 3.5);
+    g.stroke();
+  }
+  grain(g, S, S, 0.05, 700);
+  return c;
+}
+
 export function signTexture(text, bg = '#0f3d2e', fg = '#e8f2ea') {
   const [c, g] = makeCanvas(512, 128);
   g.fillStyle = bg; g.fillRect(0, 0, 512, 128);

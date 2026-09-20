@@ -1,8 +1,20 @@
 import * as THREE from 'three';
-import { flashTexture } from '../core/Procedural.js';
+import { flashTexture, gunWoodTexture } from '../core/Procedural.js';
 
 const metal = (c = 0x2b2e33) => new THREE.MeshLambertMaterial({ color: c });
 const wood = () => new THREE.MeshLambertMaterial({ color: 0x5d4224 });
+
+let woodTex = null;
+const pbrWood = () => {
+  if (!woodTex) {
+    woodTex = new THREE.CanvasTexture(gunWoodTexture());
+    woodTex.colorSpace = THREE.SRGBColorSpace;
+    woodTex.anisotropy = 4;
+  }
+  return new THREE.MeshStandardMaterial({ map: woodTex, roughness: 0.55, metalness: 0.05 });
+};
+const steel = (c = 0x2e3238, rough = 0.45, m = 0.75) =>
+  new THREE.MeshStandardMaterial({ color: c, roughness: rough, metalness: m });
 
 function part(g, geo, mat, x, y, z, rx = 0, rz = 0) {
   const m = new THREE.Mesh(geo, mat);
@@ -61,13 +73,88 @@ function buildSaw() {
 
 function buildAk47() {
   const g = new THREE.Group();
-  part(g, new THREE.BoxGeometry(0.08, 0.12, 0.5), metal(0x26292e), 0, 0, -0.18);
-  part(g, new THREE.BoxGeometry(0.05, 0.05, 0.36), metal(0x111), 0, 0.02, -0.6);
-  part(g, new THREE.BoxGeometry(0.05, 0.22, 0.1), metal(0x1a1d21), 0, -0.16, -0.02, -0.25);
-  part(g, new THREE.BoxGeometry(0.05, 0.06, 0.1), metal(0x1a1d21), 0, -0.09, 0.08);
-  part(g, new THREE.BoxGeometry(0.07, 0.11, 0.28), wood(), 0, -0.01, 0.26);
-  part(g, new THREE.BoxGeometry(0.04, 0.05, 0.14), wood(), 0, 0.0, -0.44);
-  part(g, new THREE.BoxGeometry(0.02, 0.06, 0.02), metal(0x33373d), 0, 0.1, -0.74);
+  const wm = pbrWood();
+
+  // --- Boîte de culasse (tôle emboutie) ---
+  part(g, new THREE.BoxGeometry(0.075, 0.11, 0.34), steel(), 0, 0, 0.02);
+  part(g, new THREE.BoxGeometry(0.004, 0.055, 0.15), steel(0x23262b), 0.038, -0.012, 0.03);
+  part(g, new THREE.BoxGeometry(0.004, 0.055, 0.15), steel(0x23262b), -0.038, -0.012, 0.03);
+  part(g, new THREE.BoxGeometry(0.05, 0.025, 0.30), steel(0x33373d), 0, 0.062, 0.02);
+  part(g, new THREE.BoxGeometry(0.022, 0.026, 0.055), steel(0x3a3f45, 0.35, 0.85), 0.05, 0.045, -0.05); // armement
+  part(g, new THREE.BoxGeometry(0.007, 0.022, 0.13), steel(0x3a3f45, 0.35, 0.85), 0.043, 0.012, 0.04, 0, 0.12); // sûreté
+  part(g, new THREE.BoxGeometry(0.034, 0.022, 0.03), steel(0x23262b), 0, 0.082, -0.105); // hausse
+
+  // --- chargeur "banane" courbé ---
+  const mag = steel(0x2a2d33, 0.5, 0.7);
+  part(g, new THREE.BoxGeometry(0.048, 0.12, 0.095), mag, 0, -0.135, -0.075, 0.16);
+  part(g, new THREE.BoxGeometry(0.048, 0.12, 0.09), mag, 0, -0.245, -0.125, 0.42);
+  part(g, new THREE.BoxGeometry(0.046, 0.11, 0.085), mag, 0, -0.34, -0.205, 0.7);
+  part(g, new THREE.BoxGeometry(0.055, 0.035, 0.105), steel(0x23262b), 0, -0.075, -0.075);
+
+  // --- Pistolet + détente ---
+  part(g, new THREE.BoxGeometry(0.048, 0.155, 0.062), wm, 0, -0.125, 0.115, -0.32);
+  part(g, new THREE.BoxGeometry(0.012, 0.04, 0.014), steel(0x1a1d21, 0.4, 0.8), 0, -0.065, -0.028, 0.15);
+  const guard = new THREE.Mesh(new THREE.TorusGeometry(0.036, 0.006, 6, 14), steel(0x23262b, 0.45, 0.75));
+  guard.position.set(0, -0.055, -0.03);
+  guard.rotation.y = Math.PI / 2;
+  guard.scale.set(1.25, 1.15, 1);
+  g.add(guard);
+
+  // --- Canon + tube de gaz + bloc gaz ---
+  part(g, new THREE.CylinderGeometry(0.017, 0.017, 0.46, 12), steel(0x1c1f23, 0.35, 0.85), 0, 0.025, -0.44, Math.PI / 2);
+  part(g, new THREE.CylinderGeometry(0.013, 0.013, 0.34, 10), steel(0x2a2e33, 0.4, 0.8), 0, 0.078, -0.32, Math.PI / 2);
+  part(g, new THREE.BoxGeometry(0.032, 0.07, 0.045), steel(0x23262b), 0, 0.055, -0.475);
+
+  // --- Garde-main bois nervuré ---
+  part(g, new THREE.BoxGeometry(0.058, 0.05, 0.20), wm, 0, 0.052, -0.24);
+  for (let i = 0; i < 5; i++) part(g, new THREE.BoxGeometry(0.063, 0.054, 0.012), wm, 0, 0.052, -0.155 - i * 0.042);
+  part(g, new THREE.BoxGeometry(0.062, 0.055, 0.17), wm, 0, -0.022, -0.20);
+
+  // --- Bandage + guidon protégé ---
+  part(g, new THREE.CylinderGeometry(0.022, 0.022, 0.035, 12), steel(0x2a2e33, 0.4, 0.8), 0, 0.025, -0.60, Math.PI / 2);
+  part(g, new THREE.BoxGeometry(0.03, 0.075, 0.035), steel(0x23262b), 0, 0.035, -0.635);
+  part(g, new THREE.BoxGeometry(0.006, 0.03, 0.006), steel(0x111111, 0.3, 0.9), 0, 0.095, -0.635);
+  part(g, new THREE.BoxGeometry(0.022, 0.006, 0.012), steel(0x23262b), 0, 0.112, -0.635);
+  part(g, new THREE.BoxGeometry(0.005, 0.03, 0.012), steel(0x23262b), 0.011, 0.098, -0.635);
+  part(g, new THREE.BoxGeometry(0.005, 0.03, 0.012), steel(0x23262b), -0.011, 0.098, -0.635);
+
+  // --- Frein de bouche (compensateur) ---
+  part(g, new THREE.CylinderGeometry(0.021, 0.016, 0.075, 10), steel(0x1c1f23, 0.35, 0.85), 0, 0.025, -0.755, Math.PI / 2);
+  part(g, new THREE.BoxGeometry(0.02, 0.014, 0.03), steel(0x1c1f23, 0.35, 0.85), 0.013, 0.04, -0.745, 0, 0.5);
+
+  // --- Crosse bois ---
+  part(g, new THREE.BoxGeometry(0.055, 0.105, 0.30), wm, 0, -0.045, 0.33, 0.14);
+  part(g, new THREE.BoxGeometry(0.05, 0.135, 0.028), steel(0x17191c, 0.6, 0.3), 0, -0.068, 0.475, 0.14);
+
+  g.userData.muzzle = new THREE.Vector3(0, 0.025, -0.8);
+  return g;
+}
+
+function buildMinigun() {
+  const g = new THREE.Group();
+  // carter / boîte de transmission
+  part(g, new THREE.CylinderGeometry(0.06, 0.06, 0.3, 14), steel(0x23262b, 0.4, 0.8), 0, 0.02, -0.05, Math.PI / 2);
+  part(g, new THREE.CylinderGeometry(0.055, 0.055, 0.05, 14), steel(0x1b1e22, 0.35, 0.85), 0, 0.02, -0.22, Math.PI / 2);
+  // groupe de 6 canons (entraîné à la rotation)
+  const bg = new THREE.Group();
+  bg.name = 'barrels';
+  bg.position.set(0, 0.02, -0.5);
+  for (let k = 0; k < 6; k++) {
+    const a = (k / 6) * Math.PI * 2;
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.52, 8), steel(0x15181c, 0.3, 0.9));
+    b.position.set(Math.sin(a) * 0.033, Math.cos(a) * 0.033, 0);
+    b.rotation.x = Math.PI / 2;
+    bg.add(b);
+  }
+  g.add(bg);
+  // moteur + goulotte
+  part(g, new THREE.BoxGeometry(0.08, 0.09, 0.18), steel(0x2a2e33, 0.45, 0.75), 0, -0.06, 0.02);
+  part(g, new THREE.BoxGeometry(0.035, 0.09, 0.14), steel(0x1b1e22), 0, -0.08, 0.1);
+  // caisse de munitions
+  part(g, new THREE.BoxGeometry(0.13, 0.15, 0.22), steel(0x2f3a2c, 0.6, 0.3), 0.01, -0.17, 0.26);
+  part(g, new THREE.BoxGeometry(0.135, 0.02, 0.225), steel(0x232b22, 0.6, 0.3), 0.01, -0.095, 0.26);
+  // poignée pistolet
+  part(g, new THREE.BoxGeometry(0.05, 0.15, 0.06), steel(0x1a1d21, 0.55, 0.5), 0, -0.125, 0.02, -0.3);
   g.userData.muzzle = new THREE.Vector3(0, 0.02, -0.8);
   return g;
 }
@@ -96,6 +183,7 @@ export class PlayerRig {
       carbine: buildCarbine(),
       shotgun: buildShotgun(),
       saw: buildSaw(),
+      minigun: buildMinigun(),
       bazooka: buildBazooka(),
     };
     for (const k in this.models) {
@@ -118,10 +206,13 @@ export class PlayerRig {
     this.kick = 0;
     this.kickVel = 0;
     this.flashT = 0;
+    this.spin = 0;
+    this.barrels = this.models.minigun.getObjectByName('barrels');
 
     bus.on('shot', (e) => {
       this.kickVel += (e.recoil || 1) * 2.4;
       this.flashT = 0.045;
+      if (this.current === 'minigun') this.spin = Math.min(55, this.spin + 14);
       const w = this.models[this.current] || this.models.carbine;
       this.flash.position.copy(w.userData.muzzle);
       this.flashLight.position.copy(w.userData.muzzle);
@@ -154,6 +245,11 @@ export class PlayerRig {
     );
     this.group.rotation.x = this.kick * 0.12;
     this.group.rotation.z = Math.sin(p.bobPhase * 0.5) * 0.006;
+
+    if (this.barrels) {
+      this.barrels.rotation.z += this.spin * dt;
+      this.spin = Math.max(0, this.spin - 18 * dt);
+    }
 
     if (this.flashT > 0) {
       this.flashT -= dt;

@@ -12,6 +12,7 @@ export class HUD {
       hitmarker: document.getElementById('hitmarker'),
       vignette: document.getElementById('vignette'),
       reload: document.getElementById('reload'),
+      reloadBar: document.getElementById('reload-bar'),
       banner: document.getElementById('banner'),
       scope: document.getElementById('scope'),
       scopeRng: document.getElementById('scope-rng'),
@@ -34,11 +35,10 @@ export class HUD {
     bus.on('game-over', () => { this.el.crosshair.style.display = 'none'; });
     bus.on('game-start', () => { this.el.crosshair.style.display = ''; });
     bus.on('ads', (e) => {
-      const scoped = e.on && e.weapon.def.rocket;
-      this.el.scope.style.display = scoped ? 'block' : 'none';
+      this.el.scope.style.display = e.on ? 'block' : 'none';
       this.el.crosshair.style.opacity = e.on ? 0.25 : 1;
       this.el.zoomtag.style.display = e.on ? 'block' : 'none';
-      this.el.zoomtag.textContent = e.weapon.def.rocket ? 'x2.9 · THERMIQUE' : 'x1.4';
+      this.el.zoomtag.textContent = e.weapon.def.rocket ? 'x2.9 · THERMIQUE' : 'x2.9';
     });
   }
 
@@ -71,7 +71,13 @@ export class HUD {
       }
     }
 
-    this.el.reload.style.display = w.reloading ? 'block' : 'none';
+    this.el.reload.style.display = w.reloading ? 'flex' : 'none';
+    if (w.reloading) {
+      const p = 1 - Math.max(0, w.reloadEnd - s.time) / w.def.reloadTime;
+      this.el.reloadBar.style.width = `${Math.min(100, Math.max(0, p * 100))}%`;
+    } else {
+      this.el.reloadBar.style.width = '0%';
+    }
 
     if (this.hitT > 0) {
       this.hitT -= dt;

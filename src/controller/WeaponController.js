@@ -23,6 +23,7 @@ export class WeaponController {
         this.mouseDown = true;
         this.tryFire();
       }
+      if (e.button === 1) { e.preventDefault(); this.tryReload(); }
       if (e.button === 2) this.setAds(true);
     });
     document.addEventListener('mouseup', (e) => {
@@ -47,6 +48,7 @@ export class WeaponController {
       if (e.code === 'Digit4') this.selectWeapon(3);
       if (e.code === 'Digit5') this.selectWeapon(4);
       if (e.code === 'Digit6') this.selectWeapon(5);
+      if (e.code === 'Digit7') this.selectWeapon(6);
       if (e.code === 'KeyG') this.throwNade('grenade');
       if (e.code === 'KeyN') this.throwNade('napalm');
     });
@@ -240,7 +242,7 @@ export class WeaponController {
 
     // zoom progressif
     let targetFov = this.baseFov;
-    if (this.ads) targetFov = w.def.rocket ? 26 : 52;
+    if (this.ads) targetFov = 26;
     if (Math.abs(this.camera.fov - targetFov) > 0.05) {
       this.camera.fov += (targetFov - this.camera.fov) * Math.min(1, dt * 12);
       this.camera.updateProjectionMatrix();
