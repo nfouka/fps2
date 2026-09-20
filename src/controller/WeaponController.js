@@ -207,7 +207,9 @@ export class WeaponController {
       const t = rayAABB(origin, dir, b);
       if (t >= 0 && t < bestT) { bestT = t; hitEnemy = null; head = false; hitBox = b; }
     }
-    // compte les pénétrations dans les caisses (après la boucle pour ne pas muter l'itération)
+    if (holes.length) this.bus.emit('crate-holes', { holes });
+
+    // compte les pénétrations dans les caisses (après la pose des traces)
     for (const b of crateHits) this.station.onCrateHit(b);
 
     const hitPoint = {
@@ -215,8 +217,6 @@ export class WeaponController {
       y: origin.y + dir.y * bestT,
       z: origin.z + dir.z * bestT,
     };
-
-    if (holes.length) this.bus.emit('crate-holes', { holes });
 
     if (hitEnemy) {
       const killed = head ? hitEnemy.kill() : hitEnemy.damage(def.damage);

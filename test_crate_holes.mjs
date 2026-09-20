@@ -17,42 +17,52 @@ const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 const station = buildStation(scene, bus);
 const fx = new EffectsView(scene, camera, bus);
 
-const crate = station.crates[0];
-const box = crate.box;
-console.log('caisse box ->',
-  `x[${box.min.x.toFixed(2)},${box.max.x.toFixed(2)}]`,
-  `y[${box.min.y.toFixed(2)},${box.max.y.toFixed(2)}]`,
-  `z[${box.min.z.toFixed(2)},${box.max.z.toFixed(2)}]`);
+const mid = (a, b) => (a + b) / 2;
 
-// tir traversant la caisse : trace d'entree (face +z) + de sortie (face -z)
-const c = { x: (box.min.x + box.max.x) / 2, y: (box.min.y + box.max.y) / 2, z: (box.min.z + box.max.z) / 2 };
-const dir = { x: 0, y: 0, z: -1 };
-const holes = [
-  { p: { x: c.x, y: c.y, z: box.max.z - 0.001 }, dir },
-  { p: { x: c.x, y: c.y, z: box.min.z + 0.001 }, dir },
-];
-bus.emit('crate-holes', { holes });
-
-const visibleBefore = fx.crateHoles.filter((h) => h.mesh.visible).length;
-console.log('traces visible avant destruction:', visibleBefore);
-
-for (let i = 0; i < 10; i++) station.onCrateHit(box);
-
-const crateGone = !station.crates.includes(crate);
-console.log('caisse supprimee des crates:', crateGone);
-
-const visibleAfter = fx.crateHoles.filter((h) => h.mesh.visible).length;
-console.log('traces visible apres destruction:', visibleAfter);
-
-const inBoxVisible = fx.crateHoles.filter((h) => {
+// renvoie nb de traces encore visibles dans la box donnée
+const visibleInBox = (box) => fx.crateHoles.filter((h) => {
   const p = h.mesh.position;
-  const inBox = p.x >= box.min.x - 0.03 && p.x <= box.max.x + 0.03 &&
+  return p.x >= box.min.x - 0.03 && p.x <= box.max.x + 0.03 &&
     p.y >= box.min.y - 0.03 && p.y <= box.max.y + 0.03 &&
-    p.z >= box.min.z - 0.03 && p.z <= box.max.z + 0.03;
-  return inBox && h.mesh.visible;
+    p.z >= box.min.z - 0.03 && p.z <= box.max.z + 0.03 && h.mesh.visible;
 }).length;
-console.log('traces encore visibles dans la box:', inBoxVisible);
 
-const ok = visibleBefore >= 2 && crateGone && visibleAfter === 0 && inBoxVisible === 0;
-console.log(ok ? '\nRESULTAT: OK (les traces disparaissent a la destruction)' : '\nRESULTAT: ECHEC');
+// pose 2 traces (entree + sortie) sur la surface d'une box
+const pierce = (box) => {
+  const dir = { x: 0, y: 0, z: -1 };
+  const holes = [
+    { p: { x: mid(box.min.x, box.max.x), y: mid(box.min.y, box.max.y), z: box.max.z - 0.001 }, dir },
+    { p: { x: mid(box.min.x, box.max.x), y: mid(box.min.y, box.max.y), z: box.min.z + 0.001 }, dir },
+  ];
+  bus.emit('crate-holes', { holes });
+};
+
+let ok = true;
+
+// ---- CAISSE ----
+const crate = station.crates[0];
+const cbox = crate.box;
+console.log('[caisse] box x[' + cbox.min.x.toFixed(2) + ',' + cbox.max.x.toFixed(2) + '] y[' + cbox.min.y.toFixed(2) + ',' + cbox.max.y.toFixed(2) + '] z[' + cbox.min.z.toFixed(2) + ',' + cbox.max.z.toFixed(2) + ']');
+pierce(cbox);
+const beforeC = visibleInBox(cbox);
+console.log('[caisse] traces avant destruction:', beforeC);
+for (let i = 0; i < 10; i++) station.onCrateHit(cbox);
+const crateGone = !station.crates.includes(crate);
+const afterC = visibleInBox(cbox);
+console.log('[caisse] caisse supprimee:', crateGone, '| traces apres destruction:', afterC);
+ok = ok && beforeC >= 2 && crateGone && afterC === 0;
+
+// ---- BARIL ROUGE ----
+const rbox = station.collidables.find((b) => b.isBarrel);
+console.log('[baril] box x[' + rbox.min.x.toFixed(2) + ',' + rbox.max.x.toFixed(2) + '] y[' + rbox.min.y.toFixed(2) + ',' + rbox.max.y.toFixed(2) + '] z[' + rbox.min.z.toFixed(2) + ',' + rbox.max.z.toFixed(2) + ']');
+pierce(rbox);
+const beforeR = visibleInBox(rbox);
+console.log('[baril] traces avant explosion:', beforeR);
+for (let i = 0; i < 3; i++) station.onBarrelHit(rbox);
+const barrelGone = !station.barrels.some((rb) => rb.mesh === rbox.mesh);
+const afterR = visibleInBox(rbox);
+console.log('[baril] baril supprimee:', barrelGone, '| traces apres explosion:', afterR);
+ok = ok && beforeR >= 2 && barrelGone && afterR === 0;
+
+console.log(ok ? '\nRESULTAT: OK (traces disparaissent a la destruction caisse + baril)' : '\nRESULTAT: ECHEC');
 process.exit(ok ? 0 : 1);

@@ -189,6 +189,7 @@ export function buildStation(scene, bus) {
     wipe(collidables, b); wipe(blockers, b); wipe(obstacles, b); wipe(barrels, e);
     g.remove(e.mesh);
     bus.emit('barrel-explode', { pos: { x: (b.min.x + b.max.x) / 2, y: (b.min.y + b.max.y) / 2, z: (b.min.z + b.max.z) / 2 }, radius: BARREL_RADIUS });
+    bus.emit('crate-cleared', { min: { x: b.min.x, y: b.min.y, z: b.min.z }, max: { x: b.max.x, y: b.max.y, z: b.max.z } });
   };
   const onCrateHit = (b) => { b._crate.hits++; if (b._crate.hits >= CRATE_HITS) destroyCrate(b); };
   const onBarrelHit = (b) => { b._barrel.hits++; if (b._barrel.hits >= BARREL_HITS) destroyBarrel(b); };
