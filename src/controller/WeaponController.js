@@ -209,14 +209,21 @@ export class WeaponController {
     }
     if (holes.length) this.bus.emit('crate-holes', { holes });
 
-    // compte les pénétrations dans les caisses (après la pose des traces)
-    for (const b of crateHits) this.station.onCrateHit(b);
-
     const hitPoint = {
       x: origin.x + dir.x * bestT,
       y: origin.y + dir.y * bestT,
       z: origin.z + dir.z * bestT,
     };
+
+    // effets visuels d'abord (traces), puis destruction : ainsi les traces posées
+    // sur l'objet sont effacées par son effacement (crate-cleared)
+    this.bus.emit('shot-visual', {
+      origin, dir, hitPoint,
+      enemyHit: !!hitEnemy, head,
+    });
+
+    // compte les pénétrations dans les caisses (après la pose des traces)
+    for (const b of crateHits) this.station.onCrateHit(b);
 
     if (hitEnemy) {
       const killed = head ? hitEnemy.kill() : hitEnemy.damage(def.damage);
@@ -229,11 +236,6 @@ export class WeaponController {
       if (hitBox && hitBox.isBarrel) this.station.onBarrelHit(hitBox);
       this.bus.emit('miss', { point: hitPoint });
     }
-
-    this.bus.emit('shot-visual', {
-      origin, dir, hitPoint,
-      enemyHit: !!hitEnemy, head,
-    });
   }
 
   rangeFind() {

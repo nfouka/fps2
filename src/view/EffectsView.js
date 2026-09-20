@@ -288,17 +288,15 @@ export class EffectsView {
     for (const h of e.holes) this.spawnCrateHole(h.p, h.dir);
   }
 
-  // efface les traces de balle situées dans la box d'une caisse détruite
+  // efface les traces (caisse + impacts generaux) situees dans la box d'un objet détruit
   clearHolesInBox(min, max) {
     const m = 0.03;
-    for (const h of this.crateHoles) {
-      const p = h.mesh.position;
-      if (p.x >= min.x - m && p.x <= max.x + m &&
-          p.y >= min.y - m && p.y <= max.y + m &&
-          p.z >= min.z - m && p.z <= max.z + m) {
-        h.mesh.visible = false;
-      }
-    }
+    const inBox = (p) =>
+      p.x >= min.x - m && p.x <= max.x + m &&
+      p.y >= min.y - m && p.y <= max.y + m &&
+      p.z >= min.z - m && p.z <= max.z + m;
+    for (const h of this.crateHoles) if (inBox(h.mesh.position)) h.mesh.visible = false;
+    for (const h of this.holes) if (inBox(h.mesh.position)) h.mesh.visible = false;
   }
 
   spawnCrateDebris(e) {

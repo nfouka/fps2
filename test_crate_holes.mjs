@@ -18,51 +18,51 @@ const station = buildStation(scene, bus);
 const fx = new EffectsView(scene, camera, bus);
 
 const mid = (a, b) => (a + b) / 2;
+const dir = { x: 0, y: 0, z: -1 };
 
-// renvoie nb de traces encore visibles dans la box donnée
-const visibleInBox = (box) => fx.crateHoles.filter((h) => {
+// traces generales (impacts generaux) dans une box
+const genInBox = (box) => fx.holes.filter((h) => {
+  const p = h.mesh.position;
+  return p.x >= box.min.x - 0.03 && p.x <= box.max.x + 0.03 &&
+    p.y >= box.min.y - 0.03 && p.y <= box.max.y + 0.03 &&
+    p.z >= box.min.z - 0.03 && p.z <= box.max.z + 0.03 && h.mesh.visible;
+}).length;
+// traces de caisse dans une box
+const crateInBox = (box) => fx.crateHoles.filter((h) => {
   const p = h.mesh.position;
   return p.x >= box.min.x - 0.03 && p.x <= box.max.x + 0.03 &&
     p.y >= box.min.y - 0.03 && p.y <= box.max.y + 0.03 &&
     p.z >= box.min.z - 0.03 && p.z <= box.max.z + 0.03 && h.mesh.visible;
 }).length;
 
-// pose 2 traces (entree + sortie) sur la surface d'une box
-const pierce = (box) => {
-  const dir = { x: 0, y: 0, z: -1 };
-  const holes = [
-    { p: { x: mid(box.min.x, box.max.x), y: mid(box.min.y, box.max.y), z: box.max.z - 0.001 }, dir },
-    { p: { x: mid(box.min.x, box.max.x), y: mid(box.min.y, box.max.y), z: box.min.z + 0.001 }, dir },
-  ];
-  bus.emit('crate-holes', { holes });
-};
-
 let ok = true;
 
-// ---- CAISSE ----
+// ---- CAISSE : les caisses posent des crateHoles ----
 const crate = station.crates[0];
 const cbox = crate.box;
-console.log('[caisse] box x[' + cbox.min.x.toFixed(2) + ',' + cbox.max.x.toFixed(2) + '] y[' + cbox.min.y.toFixed(2) + ',' + cbox.max.y.toFixed(2) + '] z[' + cbox.min.z.toFixed(2) + ',' + cbox.max.z.toFixed(2) + ']');
-pierce(cbox);
-const beforeC = visibleInBox(cbox);
-console.log('[caisse] traces avant destruction:', beforeC);
+console.log('[caisse] crateHoles avant:', crateInBox(cbox));
+bus.emit('crate-holes', { holes: [
+  { p: { x: mid(cbox.min.x, cbox.max.x), y: mid(cbox.min.y, cbox.max.y), z: cbox.max.z - 0.001 }, dir },
+  { p: { x: mid(cbox.min.x, cbox.max.x), y: mid(cbox.min.y, cbox.max.y), z: cbox.min.z + 0.001 }, dir },
+]});
+const cBefore = crateInBox(cbox);
 for (let i = 0; i < 10; i++) station.onCrateHit(cbox);
-const crateGone = !station.crates.includes(crate);
-const afterC = visibleInBox(cbox);
-console.log('[caisse] caisse supprimee:', crateGone, '| traces apres destruction:', afterC);
-ok = ok && beforeC >= 2 && crateGone && afterC === 0;
+const cAfter = crateInBox(cbox);
+console.log('[caisse] crateHoles avant destruction:', cBefore, '| apres:', cAfter, '| caisse supprimee:', !station.crates.includes(crate));
+ok = ok && cBefore >= 2 && cAfter === 0;
 
-// ---- BARIL ROUGE ----
+// ---- BARIL ROUGE : les barils posent des impacts generaux (spawnHole) ----
 const rbox = station.collidables.find((b) => b.isBarrel);
 console.log('[baril] box x[' + rbox.min.x.toFixed(2) + ',' + rbox.max.x.toFixed(2) + '] y[' + rbox.min.y.toFixed(2) + ',' + rbox.max.y.toFixed(2) + '] z[' + rbox.min.z.toFixed(2) + ',' + rbox.max.z.toFixed(2) + ']');
-pierce(rbox);
-const beforeR = visibleInBox(rbox);
-console.log('[baril] traces avant explosion:', beforeR);
+fx.spawnHole({ x: mid(rbox.min.x, rbox.max.x), y: mid(rbox.min.y, rbox.max.y), z: rbox.max.z - 0.001 }, dir);
+fx.spawnHole({ x: mid(rbox.min.x, rbox.max.x), y: mid(rbox.min.y, rbox.max.y), z: rbox.min.z + 0.001 }, dir);
+const rBefore = genInBox(rbox);
+console.log('[baril] impacts generaux avant explosion:', rBefore);
 for (let i = 0; i < 3; i++) station.onBarrelHit(rbox);
 const barrelGone = !station.barrels.some((rb) => rb.mesh === rbox.mesh);
-const afterR = visibleInBox(rbox);
-console.log('[baril] baril supprimee:', barrelGone, '| traces apres explosion:', afterR);
-ok = ok && beforeR >= 2 && barrelGone && afterR === 0;
+const rAfter = genInBox(rbox);
+console.log('[baril] impacts generaux apres explosion:', rAfter, '| baril supprimee:', barrelGone);
+ok = ok && rBefore >= 2 && rAfter === 0;
 
-console.log(ok ? '\nRESULTAT: OK (traces disparaissent a la destruction caisse + baril)' : '\nRESULTAT: ECHEC');
+console.log(ok ? '\nRESULTAT: OK (traces caisse + baril effacees a la destruction)' : '\nRESULTAT: ECHEC');
 process.exit(ok ? 0 : 1);
