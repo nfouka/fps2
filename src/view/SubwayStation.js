@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { textures } from '../core/Procedural.js';
+import { textures, exitSignTexture } from '../core/Procedural.js';
 
 const box = (cx, cy, cz, sx, sy, sz) => ({
   min: { x: cx - sx / 2, y: cy - sy / 2, z: cz - sz / 2 },
@@ -8,6 +8,10 @@ const box = (cx, cy, cz, sx, sy, sz) => ({
 
 export function groundHeight(x, z) {
   const az = Math.abs(z), ax = Math.abs(x);
+  // escalier de l'issue de secours (coin NE)
+  if (x >= 26 && x <= 30 && z >= 2.0 && z <= 4.4) {
+    return Math.min(1.6, Math.max(0, (x - 26) * 0.4));
+  }
   if (az <= 5 && ax <= 30) return 0;
   if (az > 5 && az <= 11) {
     if (ax >= 26 && ax <= 30) return -1.4 * (ax - 26) / 4;
@@ -47,10 +51,6 @@ export function buildStation(scene) {
   // Ligne de sécurité jaune
   add(new THREE.BoxGeometry(60, 0.02, 0.45), matStripe, 0, 0.012, 4.2);
   add(new THREE.BoxGeometry(60, 0.02, 0.45), matStripe, 0, 0.012, -4.2);
-
-  // Murs invisibles au bord du quai (le joueur ne tombe pas dans les voies)
-  blockers.push(box(0, 0.85, 4.72, 60, 1.7, 0.5));
-  blockers.push(box(0, 0.85, -4.72, 60, 1.7, 0.5));
 
   // ---- Voies (deux)
   const ang = Math.atan2(1.4, 4);
@@ -107,11 +107,80 @@ export function buildStation(scene) {
 
   // ---- Colonnes carrelées
   const pillars = [];
+  const obstacles = [];
   for (let x = -24; x <= 24; x += 8) {
     add(new THREE.BoxGeometry(0.9, 3.2, 0.9), matPillar, x, 1.6, 0);
-    collidables.push(box(x, 1.6, 0, 0.9, 3.2, 0.9));
-    pillars.push(box(x, 1.6, 0, 0.9, 3.2, 0.9));
+    const pb = box(x, 1.6, 0, 0.9, 3.2, 0.9);
+    collidables.push(pb);
+    blockers.push(pb);
+    pillars.push(pb);
+    obstacles.push(pb);
   }
+
+  // ---- Caisses & barils (couverture au milieu du quai)
+  const matCrate = new THREE.MeshLambertMaterial({ map: textures.crate() });
+  const matBarrel = new THREE.MeshLambertMaterial({ map: textures.barrel() });
+  const crates = [
+    [-20.0, 1.4, 1.0, 0.9, 1.0], [-20.0, 2.5, 0.7, 0.62, 0.7], [-19.2, 2.6, 0.8, 0.72, 0.8],
+    [-13.0, -1.6, 1.1, 0.95, 1.0], [-12.1, -0.5, 0.75, 0.65, 0.75],
+    [-5.0, 1.9, 1.0, 0.9, 1.1], [-1.0, -2.2, 0.9, 0.8, 0.9],
+    [12.0, 1.5, 1.15, 1.0, 1.05], [13.0, 2.6, 0.7, 0.6, 0.7],
+    [19.0, -1.4, 1.0, 0.9, 1.0], [20.2, -0.3, 0.8, 0.7, 0.8],
+  ];
+  for (const [cx, cz, w, h, d] of crates) {
+    const m = add(new THREE.BoxGeometry(w, h, d), matCrate, cx, h / 2, cz);
+    m.rotation.y = (Math.random() - 0.5) * 0.5;
+    const b = box(cx, h / 2, cz, w, h, d);
+    collidables.push(b); blockers.push(b); obstacles.push(b);
+  }
+  const stacked = [[-20.0, 1.4, 0.7, 1.24], [12.0, 1.5, 0.62, 1.31]];
+  for (const [cx, cz, w, cy] of stacked) {
+    add(new THREE.BoxGeometry(w, w, w), matCrate, cx, cy, cz).rotation.y = Math.random();
+    const b = box(cx, cy, cz, w, w, w);
+    collidables.push(b); blockers.push(b); obstacles.push(b);
+  }
+  for (const [cx, cz] of [[-14.5, -2.6], [11.0, -2.0], [18.0, 2.4], [-21.5, -1.0]]) {
+    add(new THREE.CylinderGeometry(0.34, 0.34, 1.0, 12), matBarrel, cx, 0.5, cz);
+    const b = box(cx, 0.5, cz, 0.68, 1.0, 0.68);
+    collidables.push(b); blockers.push(b); obstacles.push(b);
+  }
+
+  // ---- Issue de secours : escalier NE + porte blindée verte
+  const matStep = new THREE.MeshLambertMaterial({ map: textures.concrete(), color: 0xb8b8bc });
+  for (let i = 0; i < 10; i++) {
+    const h = (i + 1) * 0.16;
+    add(new THREE.BoxGeometry(0.42, h, 2.4), matStep, 26.21 + i * 0.34, h / 2 - 0.02, 3.2);
+    collidables.push(box(26.21 + i * 0.34, h / 2 - 0.02, 3.2, 0.42, h, 2.4));
+  }
+  add(new THREE.BoxGeometry(0.6, 1.62, 2.4), matStep, 29.7, 0.8, 3.2);
+  collidables.push(box(29.7, 0.8, 3.2, 0.6, 1.62, 2.4));
+  const railMat = new THREE.MeshLambertMaterial({ color: 0x5a5e66 });
+  for (let i = 0; i < 5; i++) {
+    const px = 26.4 + i * 0.85;
+    const ph = 0.9;
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, ph, 6), railMat);
+    post.position.set(px, (px - 26) * 0.4 + ph / 2, 2.0);
+    g.add(post);
+  }
+  const handrail = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.05, 0.05), railMat);
+  handrail.position.set(28.1, 1.86, 2.0);
+  handrail.rotation.z = -0.4;
+  g.add(handrail);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.7, 1.3),
+    new THREE.MeshPhongMaterial({ color: 0x1f7a3d, shininess: 40 }));
+  door.position.set(29.94, 2.47, 3.2);
+  g.add(door);
+  const signTex = new THREE.CanvasTexture(exitSignTexture());
+  signTex.colorSpace = THREE.SRGBColorSpace;
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.9, 0.48),
+    new THREE.MeshBasicMaterial({ map: signTex }));
+  sign.position.set(29.86, 3.0, 3.2);
+  sign.rotation.y = -Math.PI / 2;
+  g.add(sign);
+  const exitLight = new THREE.PointLight(0x30ff70, 12, 6, 2);
+  exitLight.position.set(29.2, 2.9, 3.2);
+  g.add(exitLight);
+  const exit = box(29.6, 2.2, 3.2, 1.0, 2.0, 2.4);
 
   // ---- Plafond
   add(new THREE.BoxGeometry(60.4, 0.3, 22.8), matCeil, 0, 3.35, 0);
@@ -125,5 +194,5 @@ export function buildStation(scene) {
     lightStrips.push(m);
   }
 
-  return { group: g, collidables, blockers, pillars, lightStrips, groundHeight };
+  return { group: g, collidables, blockers, pillars, obstacles, exit, lightStrips, groundHeight };
 }

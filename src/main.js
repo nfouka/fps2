@@ -36,7 +36,7 @@ attachSFX(audio, bus);
 
 const playerCtrl = new PlayerController(engine.camera, state, station, bus);
 const weaponCtrl = new WeaponController(engine.camera, state, station, bus);
-const enemyCtrl = new EnemyController(state, bus);
+const enemyCtrl = new EnemyController(state, bus, station);
 const spawner = new Spawner(state);
 
 function lock() {
@@ -73,11 +73,11 @@ const ui = new UIController(state, bus, {
   },
 });
 
-// position de départ
-state.player.x = 0;
+// position de départ (x=4 : entre deux piliers, jamais DEDANS)
+state.player.x = 4;
 state.player.z = 0;
 state.player.yaw = Math.PI / 2;
-engine.camera.position.set(0, state.player.eye, 0);
+engine.camera.position.set(4, state.player.eye, 0);
 engine.camera.rotation.set(0, Math.PI / 2, 0);
 lighting.setBrightness(state.brightness);
 

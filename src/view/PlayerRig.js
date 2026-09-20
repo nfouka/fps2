@@ -59,6 +59,31 @@ function buildSaw() {
   return g;
 }
 
+function buildAk47() {
+  const g = new THREE.Group();
+  part(g, new THREE.BoxGeometry(0.08, 0.12, 0.5), metal(0x26292e), 0, 0, -0.18);
+  part(g, new THREE.BoxGeometry(0.05, 0.05, 0.36), metal(0x111), 0, 0.02, -0.6);
+  part(g, new THREE.BoxGeometry(0.05, 0.22, 0.1), metal(0x1a1d21), 0, -0.16, -0.02, -0.25);
+  part(g, new THREE.BoxGeometry(0.05, 0.06, 0.1), metal(0x1a1d21), 0, -0.09, 0.08);
+  part(g, new THREE.BoxGeometry(0.07, 0.11, 0.28), wood(), 0, -0.01, 0.26);
+  part(g, new THREE.BoxGeometry(0.04, 0.05, 0.14), wood(), 0, 0.0, -0.44);
+  part(g, new THREE.BoxGeometry(0.02, 0.06, 0.02), metal(0x33373d), 0, 0.1, -0.74);
+  g.userData.muzzle = new THREE.Vector3(0, 0.02, -0.8);
+  return g;
+}
+
+function buildBazooka() {
+  const g = new THREE.Group();
+  part(g, new THREE.CylinderGeometry(0.06, 0.06, 1.1, 10), metal(0x3a4238), 0, 0, -0.25, Math.PI / 2);
+  part(g, new THREE.CylinderGeometry(0.075, 0.06, 0.3, 10), metal(0x2b2e33), 0, 0, 0.4, Math.PI / 2);
+  part(g, new THREE.CylinderGeometry(0.045, 0.06, 0.2, 10), metal(0x222622), 0, 0, -0.85, Math.PI / 2);
+  part(g, new THREE.BoxGeometry(0.05, 0.14, 0.08), metal(0x1a1d21), 0, -0.12, -0.05);
+  part(g, new THREE.BoxGeometry(0.03, 0.1, 0.04), metal(0x111), 0, 0.09, -0.35);
+  part(g, new THREE.BoxGeometry(0.03, 0.1, 0.04), metal(0x111), 0, 0.09, 0.15);
+  g.userData.muzzle = new THREE.Vector3(0, 0, -0.97);
+  return g;
+}
+
 export class PlayerRig {
   constructor(camera, bus) {
     this.group = new THREE.Group();
@@ -67,9 +92,11 @@ export class PlayerRig {
 
     this.models = {
       pistol: buildPistol(),
+      ak47: buildAk47(),
       carbine: buildCarbine(),
       shotgun: buildShotgun(),
       saw: buildSaw(),
+      bazooka: buildBazooka(),
     };
     for (const k in this.models) {
       this.models[k].visible = k === 'carbine';
@@ -95,7 +122,7 @@ export class PlayerRig {
     bus.on('shot', (e) => {
       this.kickVel += (e.recoil || 1) * 2.4;
       this.flashT = 0.045;
-      const w = this.models[this.current];
+      const w = this.models[this.current] || this.models.carbine;
       this.flash.position.copy(w.userData.muzzle);
       this.flashLight.position.copy(w.userData.muzzle);
       const s = 0.3 + Math.random() * 0.25 + (this.current === 'shotgun' ? 0.25 : 0) + (this.current === 'saw' ? 0.12 : 0);

@@ -13,6 +13,9 @@ export class Player {
     this.radius = 0.35;
     this.speed = 4.3;
     this.moving = false;
+    this.crouch = false;
+    this.vy = 0;
+    this.grounded = true;
   }
 
   reset() {
@@ -21,6 +24,8 @@ export class Player {
     this.yaw = Math.PI / 2; this.pitch = 0;
     this.bobPhase = 0; this.bobY = 0;
     this.recoilOffset = 0; this.recoilVel = 0;
+    this.crouch = false; this.vy = 0; this.grounded = true;
+    this.eye = 1.66; this.speed = 4.3;
   }
 
   addRecoil(amount) {

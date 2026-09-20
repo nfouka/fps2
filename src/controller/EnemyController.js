@@ -1,9 +1,11 @@
 import { groundHeight } from '../view/SubwayStation.js';
+import { resolveCircleAABB } from '../model/Raycast.js';
 
 export class EnemyController {
-  constructor(state, bus) {
+  constructor(state, bus, station) {
     this.state = state;
     this.bus = bus;
+    this.station = station;
     this.growlTimer = 0;
   }
 
@@ -30,8 +32,8 @@ export class EnemyController {
         if (e.attackCd <= 0) {
           e.attackCd = 1.0;
           e.attackAnim = 1;
-          const dead = p.damage(e.damage);
-          this.bus.emit('player-hurt', { hp: p.hp, damage: e.damage });
+          const dead = p.damage(e.attackDamage);
+          this.bus.emit('player-hurt', { hp: p.hp, damage: e.attackDamage });
           if (dead) {
             s.status = 'dead';
             this.bus.emit('game-over', { score: s.score });
@@ -39,17 +41,14 @@ export class EnemyController {
         }
       } else {
         e.state = 'chasing';
-        // pathfinding : dans les voies -> rejoindre la rampe la plus proche, puis le quai
-        if (Math.abs(e.z) <= 5.4) e.onPlatform = true;
+        const playerOnTracks = Math.abs(p.z) > 5.2;
         let tx, tz;
-        if (e.onPlatform) {
-          tx = p.x; tz = p.z;
-        } else if (Math.abs(e.x) > 26.8) {
-          tx = Math.sign(e.x) * 26.5;
-          tz = Math.sign(e.z) * 8;
+        if (!playerOnTracks && Math.abs(e.z) > 5.4) {
+          // zombie dans les voies, joueur sur le quai -> rejoindre la rampe
+          if (Math.abs(e.x) > 26.8) { tx = Math.sign(e.x) * 26.5; tz = Math.sign(e.z) * 8; }
+          else { tx = Math.sign(e.x || 1) * 26.5; tz = Math.sign(e.z) * 5.4; }
         } else {
-          tx = Math.sign(e.x) * 26.5;
-          tz = Math.sign(e.z) * 5.4;
+          tx = p.x; tz = p.z;
         }
         const mx = tx - e.x, mz = tz - e.z;
         const md = Math.hypot(mx, mz) || 1;
@@ -59,17 +58,21 @@ export class EnemyController {
         e.walkPhase += dt * (4 + e.speed);
         e.attackAnim = Math.max(0, e.attackAnim - dt * 3);
 
-        // bornes des voies / tunnels
-        if (Math.abs(e.z) > 5.3) {
-          e.z = Math.max(-10.4, Math.min(10.4, e.z));
-          e.x = Math.max(-48, Math.min(48, e.x));
-        } else {
-          e.x = Math.max(-29.2, Math.min(29.2, e.x));
+        // bornes
+        e.z = Math.max(-10.2, Math.min(10.2, e.z));
+        e.x = Math.max(-29.2, Math.min(29.2, e.x));
+
+        // piliers, caisses, barils = obstacles
+        if (this.station) {
+          for (const b of this.station.obstacles) {
+            const fix = resolveCircleAABB(e.x, e.z, e.radius, b);
+            if (fix) { e.x += fix.x; e.z += fix.z; }
+          }
         }
-        if (e.onPlatform) e.z = Math.max(-5.0, Math.min(5.0, e.z));
       }
 
-      e.y = groundHeight(e.x, e.z);
+      const g = groundHeight(e.x, e.z);
+      e.y += (g - e.y) * Math.min(1, dt * 8);
     }
 
     // séparation (évite l'empilement)

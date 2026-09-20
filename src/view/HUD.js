@@ -13,6 +13,11 @@ export class HUD {
       vignette: document.getElementById('vignette'),
       reload: document.getElementById('reload'),
       banner: document.getElementById('banner'),
+      scope: document.getElementById('scope'),
+      scopeRng: document.getElementById('scope-rng'),
+      scopeMil: document.getElementById('scope-mil'),
+      throwables: document.getElementById('throwables'),
+      zoomtag: document.getElementById('zoomtag'),
     };
 
     this.vignetteT = 0;
@@ -25,8 +30,16 @@ export class HUD {
     bus.on('player-hurt', () => { this.vignetteT = 0.5; });
     bus.on('wave-start', (e) => this.showBanner(`VAGUE ${e.wave}`));
     bus.on('weapon-switched', (e) => this.showBanner(e.weapon.name));
+    bus.on('station-clear', (e) => this.showBanner(`ISSUE DE SECOURS — NIVEAU ${e.level + 1}`));
     bus.on('game-over', () => { this.el.crosshair.style.display = 'none'; });
     bus.on('game-start', () => { this.el.crosshair.style.display = ''; });
+    bus.on('ads', (e) => {
+      const scoped = e.on && e.weapon.def.rocket;
+      this.el.scope.style.display = scoped ? 'block' : 'none';
+      this.el.crosshair.style.opacity = e.on ? 0.25 : 1;
+      this.el.zoomtag.style.display = e.on ? 'block' : 'none';
+      this.el.zoomtag.textContent = e.weapon.def.rocket ? 'x2.9 · THERMIQUE' : 'x1.4';
+    });
   }
 
   showBanner(text) {
@@ -46,6 +59,17 @@ export class HUD {
     this.el.hpText.textContent = Math.ceil(s.player.hp);
     this.el.wave.textContent = s.wave;
     this.el.score.textContent = s.score;
+    this.el.throwables.textContent = `G x${s.grenades} · N x${s.napalm}`;
+
+    if (s.ads) {
+      if (s.adsRange != null) {
+        this.el.scopeRng.textContent = `${s.adsRange.toFixed(1)} m`;
+        this.el.scopeMil.textContent = `1.80 m / ${(s.adsRange / 100).toFixed(2)} hm = ${Math.round(1800 / s.adsRange)} mrad`;
+      } else {
+        this.el.scopeRng.textContent = '— m';
+        this.el.scopeMil.textContent = 'AUCUNE CIBLE';
+      }
+    }
 
     this.el.reload.style.display = w.reloading ? 'block' : 'none';
 

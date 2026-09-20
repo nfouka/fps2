@@ -18,7 +18,7 @@ export class Enemy {
     this.fallDir = Math.random() < 0.5 ? 1 : -1;
     this.hue = 90 + (Math.random() * 40 - 20);
     this.attackAnim = 0;
-    this.damage = 7 + wave;
+    this.attackDamage = 7 + wave;
     this.onPlatform = false;
   }
 
@@ -34,5 +34,13 @@ export class Enemy {
       return true;
     }
     return false;
+  }
+
+  kill() {
+    if (this.state === 'dying') return false;
+    this.hp = 0;
+    this.state = 'dying';
+    this.deathTime = 0;
+    return true;
   }
 }

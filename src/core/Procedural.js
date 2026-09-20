@@ -188,6 +188,50 @@ export function flashTexture() {
   return c;
 }
 
+export function crateTexture() {
+  const S = 256, [c, g] = makeCanvas(S, S);
+  g.fillStyle = '#6e4d2a'; g.fillRect(0, 0, S, S);
+  for (let y = 0; y < S; y += 42) {
+    const d = (Math.random() * 24 - 12) | 0;
+    g.fillStyle = `rgb(${110 + d},${77 + d},${42 + d})`;
+    g.fillRect(2, y + 2, S - 4, 38);
+  }
+  g.strokeStyle = 'rgba(30,20,10,0.6)'; g.lineWidth = 3;
+  g.strokeRect(4, 4, S - 8, S - 8);
+  g.beginPath(); g.moveTo(4, 4); g.lineTo(S - 4, S - 4); g.moveTo(S - 4, 4); g.lineTo(4, S - 4); g.stroke();
+  g.fillStyle = 'rgba(200,180,60,0.85)';
+  g.font = 'bold 30px Arial'; g.fillText('MUNITIONS', 30, 140);
+  grain(g, S, S, 0.12, 2000);
+  return c;
+}
+
+export function barrelTexture() {
+  const S = 256, [c, g] = makeCanvas(S, S);
+  g.fillStyle = '#7a2020'; g.fillRect(0, 0, S, S);
+  for (let i = 0; i < 40; i++) {
+    g.fillStyle = `rgba(${90 + Math.random() * 60},${20 + Math.random() * 20},${15 + Math.random() * 15},0.4)`;
+    g.fillRect(Math.random() * S, Math.random() * S, 20 + Math.random() * 60, 4 + Math.random() * 10);
+  }
+  g.fillStyle = '#d8c840'; g.fillRect(0, 96, S, 26);
+  g.fillStyle = '#181414';
+  g.beginPath(); g.arc(S / 2, 109, 15, 0, 7); g.fill();
+  g.fillStyle = '#d8c840';
+  g.beginPath(); g.moveTo(S / 2, 99); g.lineTo(S / 2 - 6, 114); g.lineTo(S / 2 + 6, 114); g.fill();
+  grain(g, S, S, 0.15, 2200);
+  return c;
+}
+
+export function exitSignTexture() {
+  const [c, g] = makeCanvas(512, 128);
+  g.fillStyle = '#0a5c2c'; g.fillRect(0, 0, 512, 128);
+  g.strokeStyle = '#d8ffd8'; g.lineWidth = 5; g.strokeRect(8, 8, 496, 112);
+  g.fillStyle = '#eaffea';
+  g.font = 'bold 52px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('ISSUE DE SECOURS ↑', 256, 66);
+  grain(g, 512, 128, 0.06, 900);
+  return c;
+}
+
 export const textures = {
   tileFloor: () => tex(tileTexture([168, 172, 178], [60, 64, 70], 6), 12, 2),
   tileWall: () => tex(tileTexture([140, 150, 160], [44, 48, 54], 6), 10, 1),
@@ -197,4 +241,6 @@ export const textures = {
   ballast: () => tex(ballastTexture(), 6, 2),
   metal: () => tex(metalTexture(), 4, 1),
   stripe: () => tex(stripeTexture(), 14, 1),
+  crate: () => tex(crateTexture(), 1, 1),
+  barrel: () => tex(barrelTexture(), 2, 1),
 };

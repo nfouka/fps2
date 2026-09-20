@@ -75,6 +75,32 @@
     font-size: 20px; color: #ffd23f; text-shadow: 0 0 10px rgba(0,0,0,0.9);
   }
 
+  #throwables {
+    position: absolute; left: 34px; bottom: 80px;
+    font-size: 14px; letter-spacing: 2px; color: #c9a227;
+    text-shadow: 0 0 8px rgba(0,0,0,0.9);
+  }
+
+  #scope {
+    position: absolute; inset: 0; display: none;
+    background: radial-gradient(circle at 50% 50%, transparent 0 34%, rgba(0,0,0,0.96) 34.3%);
+  }
+  #scope::before, #scope::after { content: ''; position: absolute; background: rgba(140,255,170,0.45); }
+  #scope::before { left: 50%; top: calc(50% - 120px); width: 1px; height: 240px; transform: translateX(-50%); }
+  #scope::after { top: 50%; left: calc(50% - 120px); height: 1px; width: 240px; transform: translateY(-50%); }
+  #scope-rng {
+    position: absolute; left: 50%; top: calc(50% + 132px); transform: translateX(-50%);
+    font-size: 16px; letter-spacing: 2px; color: #8effa8;
+  }
+  #scope-mil {
+    position: absolute; left: 50%; top: calc(50% + 154px); transform: translateX(-50%);
+    font-size: 12px; letter-spacing: 1px; color: #8effa8;
+  }
+  #zoomtag {
+    position: absolute; right: 36px; bottom: 102px; display: none;
+    font-size: 12px; letter-spacing: 3px; color: #8effa8;
+  }
+
   #banner {
     position: absolute; left: 50%; top: 30%; transform: translateX(-50%);
     font-size: 34px; letter-spacing: 10px; color: #fff;
@@ -136,6 +162,12 @@
       <div id="hp-bar"><div id="hp-fill"></div></div>
       <div id="hp-text">100</div>
     </div>
+    <div id="throwables">G x4 · N x2</div>
+    <div id="scope">
+      <div id="scope-rng">— m</div>
+      <div id="scope-mil">AUCUNE CIBLE</div>
+    </div>
+    <div id="zoomtag"></div>
     <div id="minimap-wrap">
       <span class="mm-label">TACTIQUE</span>
       <canvas id="minimap" width="210" height="52"></canvas>

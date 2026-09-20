@@ -1,4 +1,5 @@
 import { resolveCircleAABB } from '../model/Raycast.js';
+import { groundHeight } from '../view/SubwayStation.js';
 
 const SENS = 0.0021;
 
@@ -10,8 +11,12 @@ export class PlayerController {
     this.bus = bus;
     this.keys = {};
     this.lastStep = 0;
+    this.escaped = false;
+    this.camera.rotation.order = 'YXZ';
+    bus.on('game-start', () => { this.escaped = false; });
 
     window.addEventListener('keydown', (e) => {
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
       this.keys[e.code] = true;
       if (e.code === 'BracketLeft') this.adjustBrightness(-0.1);
       if (e.code === 'BracketRight') this.adjustBrightness(0.1);
@@ -41,18 +46,37 @@ export class PlayerController {
     const k = this.keys;
 
     let mx = 0, mz = 0;
-    if (k['KeyW']) mz -= 1;
-    if (k['KeyS']) mz += 1;
-    if (k['KeyA']) mx -= 1;
-    if (k['KeyD']) mx += 1;
+    if (k['KeyW'] || k['ArrowUp']) mz -= 1;
+    if (k['KeyS'] || k['ArrowDown']) mz += 1;
+    if (k['KeyA'] || k['ArrowLeft']) mx -= 1;
+    if (k['KeyD'] || k['ArrowRight']) mx += 1;
+
+    // gravité + sol (quai, voies, rampe, escalier de secours)
+    const gY = groundHeight(p.x, p.z);
+    if (p.y <= gY + 0.01 && p.vy <= 0) { p.y = gY; p.vy = 0; p.grounded = true; }
+    else p.grounded = false;
+    if (!p.grounded) {
+      p.vy -= 12 * dt;
+      p.y += p.vy * dt;
+      if (p.y < gY) { p.y = gY; p.vy = 0; }
+    } else if (gY > p.y && gY - p.y <= 0.16) {
+      p.y = gY;
+    }
+
+    // saut + accroupissement
+    if (k['Space'] && p.grounded) p.vy = 4.6;
+    p.crouch = !!(k['ControlLeft'] || k['ControlRight'] || k['KeyC']) && p.grounded;
+    p.speed = p.crouch ? 2.2 : 4.3;
+    const targetEye = p.crouch ? 0.95 : 1.66;
+    p.eye += (targetEye - p.eye) * Math.min(1, dt * 14);
 
     p.moving = (mx !== 0 || mz !== 0);
     if (p.moving) {
       const len = Math.hypot(mx, mz);
       mx /= len; mz /= len;
       const sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
-      const vx = (mx * cos - mz * sin) * p.speed;
-      const vz = (mx * sin + mz * cos) * p.speed;
+      const vx = (mx * cos + mz * sin) * p.speed;
+      const vz = (mz * cos - mx * sin) * p.speed;
       p.x += vx * dt;
       p.z += vz * dt;
 
@@ -72,17 +96,30 @@ export class PlayerController {
       const fix = resolveCircleAABB(p.x, p.z, p.radius, b);
       if (fix) { p.x += fix.x; p.z += fix.z; }
     }
-    p.x = Math.max(-29.4, Math.min(29.4, p.x));
-    p.z = Math.max(-4.5, Math.min(4.5, p.z));
+    p.x = Math.max(-29.4, Math.min(29.9, p.x));
+    p.z = Math.max(-10.2, Math.min(10.2, p.z));
+
+    // issue de secours atteinte -> niveau supérieur
+    if (!this.escaped && p.x > 29.2 && p.z > 2.0 && p.z < 4.4 && p.y > 1.2) {
+      this.escaped = true;
+      const lvl = ++this.state.exitLevel;
+      this.state.addScore(500 * lvl);
+      this.state.heal(40);
+      this.state.grenades += 1;
+      this.state.napalm += 1;
+      p.x = 4; p.z = 0; p.y = 0; p.vy = 0;
+      this.bus.emit('station-clear', { level: lvl });
+    }
 
     // recul ressort
     p.updateRecoil(dt);
 
     // caméra
-    p.bobY = p.moving ? Math.sin(p.bobPhase * 2) * 0.03 : Math.sin(p.bobPhase) * 0.006;
-    this.camera.position.set(p.x, p.eye + p.bobY, p.z);
+    const bobScale = !p.grounded ? 0 : p.crouch ? 0.4 : 1;
+    p.bobY = (p.moving ? Math.sin(p.bobPhase * 2) * 0.03 : Math.sin(p.bobPhase) * 0.006) * bobScale;
+    this.camera.position.set(p.x, p.y + p.eye + p.bobY, p.z);
     this.camera.rotation.set(
-      Math.max(-1.5, Math.min(1.5, p.pitch + p.recoilOffset)),
+      Math.max(-1.5, Math.min(1.5, p.pitch)),
       p.yaw,
       Math.sin(p.bobPhase) * 0.004
     );

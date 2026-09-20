@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { groundHeight } from './SubwayStation.js';
 
 const N_HOLES = 64, N_TRACERS = 24, N_BLOOD = 8, N_SHELLS = 36;
 
@@ -55,7 +56,140 @@ export class EffectsView {
     }
     this.shellIdx = 0;
 
+    // --- roquettes & grenades (projectiles)
+    this.projectiles = new Map();
+    this.rocketGeo = null;
+    this.nadeGeo = new THREE.SphereGeometry(0.09, 8, 8);
+    this.nadeMat = new THREE.MeshPhongMaterial({ color: 0x2e3a26, shininess: 40 });
+    this.bottleMat = new THREE.MeshPhongMaterial({ color: 0x7a3010, emissive: 0x330d00, shininess: 60 });
+
+    // --- explosions
+    this.booms = [];
+    for (let i = 0; i < 5; i++) {
+      const sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 16, 12),
+        new THREE.MeshBasicMaterial({ color: 0xffa030, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      sphere.visible = false;
+      const light = new THREE.PointLight(0xff8830, 0, 24, 2);
+      const scorch = new THREE.Mesh(
+        new THREE.CircleGeometry(1, 20),
+        new THREE.MeshBasicMaterial({ color: 0x0c0a08, transparent: true, opacity: 0, depthWrite: false })
+      );
+      scorch.rotation.x = -Math.PI / 2;
+      scorch.visible = false;
+      scene.add(sphere); scene.add(light); scene.add(scorch);
+      this.booms.push({ sphere, light, scorch, life: 0, radius: 1 });
+    }
+    this.boomIdx = 0;
+
+    // --- nappes de feu
+    this.pools = [];
+    for (let i = 0; i < 4; i++) {
+      const geo = new THREE.BufferGeometry();
+      const pos = new Float32Array(70 * 3);
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const flames = new THREE.Points(geo, new THREE.PointsMaterial({
+        color: 0xff7722, size: 0.22, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false,
+      }));
+      flames.frustumCulled = false;
+      const light = new THREE.PointLight(0xff6611, 0, 12, 2);
+      scene.add(flames); scene.add(light);
+      this.pools.push({ flames, light, seeds: new Float32Array(70 * 3), life: 0 });
+    }
+    this.poolIdx = 0;
+
     bus.on('shot-visual', (e) => this.onShot(e));
+    bus.on('rocket-fired', (e) => this.spawnRocket(e));
+    bus.on('rocket-step', (e) => this.stepProjectile(e.id, e.pos, e.dir));
+    bus.on('rocket-end', (e) => this.removeProjectile(e.id));
+    bus.on('nade-fired', (e) => this.spawnNade(e));
+    bus.on('nade-step', (e) => this.stepProjectile(e.id, e.pos, null));
+    bus.on('nade-end', (e) => this.removeProjectile(e.id));
+    bus.on('explosion', (e) => this.spawnBoom(e));
+    bus.on('fire-pool', (e) => this.spawnPool(e));
+  }
+
+  spawnRocket(e) {
+    const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 10),
+      new THREE.MeshPhongMaterial({ color: 0x3d4a3a, shininess: 50 }));
+    body.rotation.x = Math.PI / 2;
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 10),
+      new THREE.MeshPhongMaterial({ color: 0x8a2020, shininess: 60 }));
+    nose.rotation.x = -Math.PI / 2;
+    nose.position.z = -0.33;
+    g.add(body); g.add(nose);
+    for (let i = 0; i < 4; i++) {
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.12, 0.1),
+        new THREE.MeshPhongMaterial({ color: 0x222622 }));
+      fin.position.z = 0.24;
+      fin.position.x = Math.sin((i * Math.PI) / 2) * 0.07;
+      fin.position.y = Math.cos((i * Math.PI) / 2) * 0.07;
+      fin.rotation.z = (i * Math.PI) / 2;
+      g.add(fin);
+    }
+    const light = new THREE.PointLight(0xff9944, 14, 6, 2);
+    g.add(light);
+    g.position.set(e.pos.x, e.pos.y, e.pos.z);
+    this.scene.add(g);
+    this.projectiles.set(e.id, { mesh: g, life: 8 });
+  }
+
+  spawnNade(e) {
+    const m = new THREE.Mesh(this.nadeGeo, e.kind === 'napalm' ? this.bottleMat : this.nadeMat);
+    m.position.set(e.pos.x, e.pos.y, e.pos.z);
+    this.scene.add(m);
+    this.projectiles.set(e.id, { mesh: m, life: 8 });
+  }
+
+  stepProjectile(id, pos, dir) {
+    const p = this.projectiles.get(id);
+    if (!p) return;
+    p.mesh.position.set(pos.x, pos.y, pos.z);
+    if (dir) p.mesh.lookAt(pos.x + dir.x, pos.y + dir.y, pos.z + dir.z);
+    else p.mesh.rotation.x += 0.25;
+  }
+
+  removeProjectile(id) {
+    const p = this.projectiles.get(id);
+    if (!p) return;
+    this.scene.remove(p.mesh);
+    p.mesh.traverse((o) => { if (o.material) o.material.dispose(); if (o.geometry) o.geometry.dispose(); });
+    this.projectiles.delete(id);
+  }
+
+  spawnBoom(e) {
+    const b = this.booms[this.boomIdx = (this.boomIdx + 1) % this.booms.length];
+    b.sphere.visible = true;
+    b.sphere.position.set(e.pos.x, e.pos.y, e.pos.z);
+    b.light.position.set(e.pos.x, e.pos.y + 0.3, e.pos.z);
+    b.light.intensity = 320;
+    b.scorch.visible = true;
+    b.scorch.position.set(e.pos.x, groundHeight(e.pos.x, e.pos.z) + 0.02, e.pos.z);
+    b.scorch.scale.setScalar(e.radius * 0.9);
+    b.scorch.material.opacity = 0.85;
+    b.radius = e.radius;
+    b.life = 0.6;
+  }
+
+  spawnPool(e) {
+    const p = this.pools[this.poolIdx = (this.poolIdx + 1) % this.pools.length];
+    const pos = p.flames.geometry.attributes.position.array;
+    for (let i = 0; i < 70; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * 2.4;
+      p.seeds[i * 3] = e.pos.x + Math.cos(a) * r;
+      p.seeds[i * 3 + 1] = e.pos.y;
+      p.seeds[i * 3 + 2] = e.pos.z + Math.sin(a) * r;
+      pos[i * 3] = p.seeds[i * 3];
+      pos[i * 3 + 1] = p.seeds[i * 3 + 1] + Math.random() * 0.8;
+      pos[i * 3 + 2] = p.seeds[i * 3 + 2];
+    }
+    p.flames.geometry.attributes.position.needsUpdate = true;
+    p.flames.material.opacity = 1;
+    p.light.position.set(e.pos.x, e.pos.y + 0.7, e.pos.z);
+    p.life = 7;
   }
 
   onShot(e) {
@@ -154,6 +288,41 @@ export class EffectsView {
         if (s.life <= 0) s.mesh.visible = false;
       }
     }
+    for (const b of this.booms) {
+      if (b.life > 0) {
+        b.life -= dt;
+        const t = 1 - b.life / 0.6;
+        b.sphere.scale.setScalar(0.3 + t * b.radius);
+        b.sphere.material.opacity = (1 - t) * 0.9;
+        b.light.intensity *= 0.82;
+        if (b.life <= 0) { b.sphere.visible = false; b.light.intensity = 0; }
+      }
+      if (b.scorch.visible) {
+        b.scorch.material.opacity -= dt * 0.06;
+        if (b.scorch.material.opacity <= 0) b.scorch.visible = false;
+      }
+    }
+    for (const p of this.pools) {
+      if (p.life > 0) {
+        p.life -= dt;
+        const pos = p.flames.geometry.attributes.position.array;
+        for (let i = 0; i < 70; i++) {
+          pos[i * 3 + 1] += dt * (1.2 + (i % 5) * 0.4);
+          if (pos[i * 3 + 1] > p.seeds[i * 3 + 1] + 1.6) {
+            pos[i * 3 + 1] = p.seeds[i * 3 + 1];
+          }
+          pos[i * 3] += Math.sin((p.life + i) * 9) * dt * 0.3;
+        }
+        p.flames.geometry.attributes.position.needsUpdate = true;
+        p.flames.material.opacity = Math.min(1, p.life / 1.5) * (0.75 + Math.random() * 0.25);
+        p.light.intensity = 30 + Math.random() * 22;
+        if (p.life <= 0) { p.flames.material.opacity = 0; p.light.intensity = 0; }
+      }
+    }
+    for (const [id, p] of this.projectiles) {
+      p.life -= dt;
+      if (p.life <= 0) this.removeProjectile(id);
+    }
   }
 
   clear() {
@@ -161,5 +330,8 @@ export class EffectsView {
     for (const t of this.tracers) t.life = 0;
     for (const b of this.bloods) b.life = 0;
     for (const s of this.shells) { s.life = 0; s.mesh.visible = false; }
+    for (const b of this.booms) { b.life = 0; b.sphere.visible = false; b.scorch.visible = false; b.light.intensity = 0; }
+    for (const p of this.pools) { p.life = 0; p.flames.material.opacity = 0; p.light.intensity = 0; }
+    for (const [id] of this.projectiles) this.removeProjectile(id);
   }
 }

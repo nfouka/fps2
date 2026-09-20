@@ -17,7 +17,7 @@ export function buildWalls(scene, station) {
   scene.add(g);
 
   // Panneaux de nom de station sur les murs de voies
-  const names = ['CHATELET', 'LES HALLES', 'CITE'];
+  const names = ['GARE DE GRENOBLE', 'ILE PERIERE', 'BASTILLE'];
   for (const s of [1, -1]) {
     names.forEach((n, i) => {
       const m = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.05), planeTex(signTexture(n), 4.2, 1.05));
@@ -53,6 +53,7 @@ export function buildWalls(scene, station) {
     // graffitis au ras du sol
     for (let i = 0; i < 3; i++) {
       const t = new THREE.CanvasTexture(graffitiTexture());
+      t.colorSpace = THREE.SRGBColorSpace;
       const mat = new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.85, depthWrite: false });
       const m = new THREE.Mesh(new THREE.PlaneGeometry(3, 1.2), mat);
       m.position.set(-20 + i * 17 + 4, 0.75, s * 10.96);
