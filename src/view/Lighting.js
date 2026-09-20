@@ -5,16 +5,16 @@ export class Lighting {
     this.engine = engine;
     this.mul = 1;
 
-    this.hemi = new THREE.HemisphereLight(0x3a4a66, 0x0b0d12, 0.45);
+    this.hemi = new THREE.HemisphereLight(0x6a7a96, 0x1a1d24, 0.8);
     scene.add(this.hemi);
 
     this.lights = [];
     this.flicker = new Map();
     for (let x = -24; x <= 24; x += 8) {
-      const l = new THREE.PointLight(0xffe9c4, 26, 24, 1.7);
+      const l = new THREE.PointLight(0xfff0d0, 46, 26, 1.6);
       l.position.set(x, 2.85, 0);
       scene.add(l);
-      this.lights.push({ light: l, base: 26 });
+      this.lights.push({ light: l, base: 46 });
     }
     // deux réglettes grésillent
     this.flicker.set(this.lights[2], { t: 0, drop: 0 });
@@ -22,10 +22,10 @@ export class Lighting {
 
     // lueurs dans les tunnels
     for (const s of [1, -1]) for (const t of [1, -1]) {
-      const l = new THREE.PointLight(0x223044, 6, 14, 2);
+      const l = new THREE.PointLight(0x3a5a80, 12, 16, 2);
       l.position.set(s * 33, 0.6, t * 8);
       scene.add(l);
-      this.lights.push({ light: l, base: 6 });
+      this.lights.push({ light: l, base: 12 });
     }
 
     this.strips = station.lightStrips;
@@ -35,8 +35,8 @@ export class Lighting {
 
   setBrightness(v) {
     this.mul = v;
-    this.engine.renderer.toneMappingExposure = 0.45 + 0.62 * v;
-    for (const s of this.strips) s.material.color.setScalar(0.55 + 0.55 * v);
+    this.engine.renderer.toneMappingExposure = 0.55 + 0.75 * v;
+    for (const s of this.strips) s.material.color.setScalar(0.7 + 0.5 * v);
   }
 
   update(time) {

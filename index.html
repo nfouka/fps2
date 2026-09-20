@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600&display=swap" rel="stylesheet">
 <title>DEAD LINE — Subway Station FPS</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -141,69 +144,85 @@
   }
 
   /* ---------- Overlays ---------- */
+  /* ---------- Overlays (CS:GO style) ---------- */
   .overlay {
     position: fixed; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 24px;
+    align-items: center; justify-content: center; gap: 26px;
     background:
-      radial-gradient(1100px 550px at 50% 16%, rgba(28, 66, 125, 0.35), transparent 65%),
-      radial-gradient(900px 520px at 50% 112%, rgba(8, 26, 55, 0.55), transparent 60%),
-      linear-gradient(180deg, #04070e 0%, #01030a 100%);
-    color: #c7d6ea; z-index: 10;
-    font-family: 'Segoe UI', 'Arial Narrow', system-ui, sans-serif;
+      radial-gradient(1200px 600px at 50% 6%, rgba(240, 140, 20, 0.12), transparent 62%),
+      linear-gradient(180deg, #0e0f11 0%, #070809 55%, #040405 100%);
+    color: #cfcfcf; z-index: 10;
+    font-family: 'Oswald', 'Arial Narrow', 'Roboto Condensed', system-ui, sans-serif;
   }
+  .overlay::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(1050px 520px at 50% 32%, #000, transparent 82%);
+    pointer-events: none;
+  }
+  .overlay > * { position: relative; z-index: 1; }
   .overlay h1 {
-    font-size: 66px; font-weight: 200; letter-spacing: 28px; text-indent: 28px;
-    color: #eaf3ff;
-    text-shadow: 0 0 18px rgba(64, 150, 255, 0.9), 0 0 70px rgba(40, 110, 230, 0.5);
+    font-size: 84px; font-weight: 500; letter-spacing: 16px; text-indent: 16px;
+    color: #ffffff;
+    text-shadow: 0 0 28px rgba(240, 140, 20, 0.5), 0 3px 0 rgba(0,0,0,0.6);
+    transform: skewX(-5deg);
   }
+  .overlay h1 .accent { color: #f08c14; }
   .overlay h2 {
-    font-size: 36px; font-weight: 200; letter-spacing: 14px; text-indent: 14px;
-    color: #eaf3ff; text-shadow: 0 0 22px rgba(64, 150, 255, 0.7);
+    font-size: 44px; font-weight: 500; letter-spacing: 10px; text-indent: 10px;
+    color: #ff5a4a;
+    text-shadow: 0 0 26px rgba(255, 70, 40, 0.6), 0 3px 0 rgba(0,0,0,0.6);
+    transform: skewX(-5deg);
   }
   .overlay .sub {
-    color: #7fa3cc; letter-spacing: 5px; font-size: 12px; font-weight: 300;
+    color: #9a9a9a; letter-spacing: 5px; font-size: 13px; font-weight: 300;
+    text-transform: uppercase;
   }
   .overlay .divider {
-    width: 220px; height: 1px; margin: -6px 0;
-    background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.7), transparent);
-    box-shadow: 0 0 12px rgba(60, 140, 255, 0.5);
+    width: 260px; height: 2px; margin: -8px 0;
+    background: linear-gradient(90deg, transparent, #f08c14 45%, transparent);
+    box-shadow: 0 0 14px rgba(240, 140, 20, 0.7);
   }
   .overlay button {
     pointer-events: auto; cursor: pointer;
-    background: rgba(20, 45, 80, 0.25);
-    color: #dcebff;
-    border: 1px solid rgba(96, 165, 250, 0.45);
-    border-radius: 6px;
-    font-family: inherit; font-size: 15px; font-weight: 500;
-    letter-spacing: 6px; text-indent: 6px; text-transform: uppercase;
-    padding: 15px 52px;
-    backdrop-filter: blur(6px);
-    box-shadow: 0 0 22px rgba(40, 110, 230, 0.15), inset 0 0 18px rgba(40, 110, 230, 0.08);
-    transition: all 0.25s ease;
+    position: relative;
+    background: linear-gradient(180deg, #1b1d20 0%, #0d0e10 100%);
+    color: #dcdcdc;
+    border: none;
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+    font-family: inherit; font-size: 18px; font-weight: 500;
+    letter-spacing: 4px; text-transform: uppercase;
+    padding: 17px 64px;
+    border-left: 4px solid #f08c14;
+    transition: all 0.18s ease;
   }
   .overlay button:hover {
-    background: rgba(40, 90, 160, 0.35);
-    border-color: rgba(140, 195, 255, 0.9);
-    box-shadow: 0 0 36px rgba(60, 140, 255, 0.45), inset 0 0 24px rgba(60, 140, 255, 0.15);
-    transform: translateY(-1px);
+    background: linear-gradient(180deg, #f3a42c 0%, #cf7507 100%);
+    color: #0a0a0a;
+    box-shadow: 0 0 34px rgba(240, 140, 20, 0.55);
+    transform: translateX(3px);
   }
   .controls {
-    font-size: 12.5px; line-height: 2.5; color: #6f8fb5;
+    font-size: 13px; line-height: 2.6; color: #8a8a8a;
     text-align: center; letter-spacing: 1px;
+    max-width: 640px;
   }
   .controls b {
-    color: #cfe4ff; font-weight: 600;
-    background: rgba(60, 130, 246, 0.1);
-    border: 1px solid rgba(96, 165, 250, 0.35);
-    border-radius: 5px;
-    padding: 2px 8px; margin: 0 2px;
-    box-shadow: 0 0 10px rgba(40, 110, 230, 0.15);
+    color: #f08c14; font-weight: 600;
+    background: rgba(240, 140, 20, 0.08);
+    border: 1px solid rgba(240, 140, 20, 0.4);
+    padding: 2px 9px; margin: 0 3px;
+    box-shadow: 0 0 10px rgba(240, 140, 20, 0.12);
   }
   .lum-row {
     display: flex; align-items: center; gap: 14px;
-    font-size: 11px; letter-spacing: 4px; color: #7fa3cc;
+    font-size: 11px; letter-spacing: 4px; color: #9a9a9a;
+    text-transform: uppercase;
   }
-  input[type=range] { pointer-events: auto; width: 190px; accent-color: #3b82f6; }
+  input[type=range] { pointer-events: auto; width: 190px; accent-color: #f08c14; }
   #dead h2 { color: #ff5a4a; text-shadow: 0 0 26px rgba(255, 60, 40, 0.65); }
 </style>
 </head>
@@ -240,14 +259,14 @@
   </div>
 
   <div id="menu" class="overlay">
-    <h1>DEAD LINE</h1>
+    <h1>DEAD <span class="accent">LINE</span></h1>
     <div class="divider"></div>
     <div class="sub">STATION CHATELET — 03:47 — IL NE FAUT PAS SORTIR DU QUAI</div>
     <div class="controls">
       <b>WASD</b> déplacement &nbsp;·&nbsp; <b>SOURIS</b> viser &nbsp;·&nbsp; <b>CLIC G</b> tirer<br/>
       <b>MOLETTE</b> changer d'arme &nbsp;·&nbsp; <b>CLIC MOLETTE</b> recharger &nbsp;·&nbsp; <b>R</b> recharger<br/>
       <b>[</b> / <b>]</b> luminosité &nbsp;·&nbsp; <b>ÉCHAP</b> pause<br/>
-      <span style="color:#7fb2e8">M9 · AK-47 · M4 · M870 · M249 · M134 MINIGUN · RPG-7</span>
+      <span style="color:#f08c14; letter-spacing: 2px">ARSENAL : M9 · AK-47 · M4 · M870 · M249 · M134 MINIGUN (2000) · RPG-7</span>
     </div>
     <div class="lum-row">LUMINOSITE <input id="lum" type="range" min="0.25" max="1.6" step="0.05" value="1" /></div>
     <button id="start-btn">ENTRER DANS LA STATION</button>

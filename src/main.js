@@ -21,7 +21,7 @@ const bus = new EventBus();
 const engine = new Engine(document.getElementById('app'));
 const state = new GameState(bus);
 
-const station = buildStation(engine.scene);
+const station = buildStation(engine.scene, bus);
 buildWalls(engine.scene, station);
 
 const lighting = new Lighting(engine.scene, engine, station, bus);
@@ -89,6 +89,7 @@ function frame(now) {
 
   if (state.status === 'playing') {
     state.time += dt;
+    station.updatePhysics(dt);
     playerCtrl.update(dt);
     weaponCtrl.update(dt);
     enemyCtrl.update(dt);

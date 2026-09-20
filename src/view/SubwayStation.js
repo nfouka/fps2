@@ -20,7 +20,7 @@ export function groundHeight(x, z) {
   return -1.4;
 }
 
-export function buildStation(scene) {
+export function buildStation(scene, bus) {
   const collidables = []; // pour les tirs
   const blockers = [];    // pour le joueur
   const g = new THREE.Group();
@@ -120,30 +120,127 @@ export function buildStation(scene) {
   // ---- Caisses & barils (couverture au milieu du quai)
   const matCrate = new THREE.MeshLambertMaterial({ map: textures.crate() });
   const matBarrel = new THREE.MeshLambertMaterial({ map: textures.barrel() });
-  const crates = [
-    [-20.0, 1.4, 1.0, 0.9, 1.0], [-20.0, 2.5, 0.7, 0.62, 0.7], [-19.2, 2.6, 0.8, 0.72, 0.8],
-    [-13.0, -1.6, 1.1, 0.95, 1.0], [-12.1, -0.5, 0.75, 0.65, 0.75],
-    [-5.0, 1.9, 1.0, 0.9, 1.1], [-1.0, -2.2, 0.9, 0.8, 0.9],
-    [12.0, 1.5, 1.15, 1.0, 1.05], [13.0, 2.6, 0.7, 0.6, 0.7],
-    [19.0, -1.4, 1.0, 0.9, 1.0], [20.2, -0.3, 0.8, 0.7, 0.8],
-  ];
-  for (const [cx, cz, w, h, d] of crates) {
-    const m = add(new THREE.BoxGeometry(w, h, d), matCrate, cx, h / 2, cz);
-    m.rotation.y = (Math.random() - 0.5) * 0.5;
-    const b = box(cx, h / 2, cz, w, h, d);
+  const CRATE_HITS = 10;      // balles pour casser une caisse
+  const BARREL_HITS = 3;      // balles pour faire exploser un baril
+  const BARREL_RADIUS = 3;    // rayon d'explosion (mètres)
+  const crates = [];
+  const barrels = [];
+
+  const addCrate = (cx, cy, cz, w, h, d) => {
+    const cyC = cy + h / 2; // centre Y
+    const m = add(new THREE.BoxGeometry(w, h, d), matCrate, cx, cyC, cz);
+    m.rotation.y = (Math.random() - 0.5) * 0.4;
+    const b = box(cx, cyC, cz, w, h, d);
+    b.isCrate = true;
+    const c = { mesh: m, box: b, hits: 0, state: 'static', vy: 0, cx, cy: cyC, cz, w, h, d };
+    b._crate = c;
     collidables.push(b); blockers.push(b); obstacles.push(b);
-  }
-  const stacked = [[-20.0, 1.4, 0.7, 1.24], [12.0, 1.5, 0.62, 1.31]];
-  for (const [cx, cz, w, cy] of stacked) {
-    add(new THREE.BoxGeometry(w, w, w), matCrate, cx, cy, cz).rotation.y = Math.random();
-    const b = box(cx, cy, cz, w, w, w);
-    collidables.push(b); blockers.push(b); obstacles.push(b);
-  }
-  for (const [cx, cz] of [[-14.5, -2.6], [11.0, -2.0], [18.0, 2.4], [-21.5, -1.0]]) {
-    add(new THREE.CylinderGeometry(0.34, 0.34, 1.0, 12), matBarrel, cx, 0.5, cz);
+    crates.push(c);
+    return c;
+  };
+  const addBarrel = (cx, cz) => {
+    const m = add(new THREE.CylinderGeometry(0.34, 0.34, 1.0, 12), matBarrel, cx, 0.5, cz);
     const b = box(cx, 0.5, cz, 0.68, 1.0, 0.68);
+    b.isBarrel = true;
+    b._barrel = { mesh: m, hits: 0 };
     collidables.push(b); blockers.push(b); obstacles.push(b);
-  }
+    barrels.push(b._barrel);
+    return b._barrel;
+  };
+
+  // empilements à plusieurs niveaux (couverture)
+  addCrate(-20.0, 0, 1.4, 0.9, 1.0, 0.9);       // niveau 1
+  addCrate(-19.8, 1.0, 1.0, 0.7, 0.8, 0.7);     // niveau 2
+  addCrate(-20.1, 1.8, 0.7, 0.6, 0.6, 0.6);     // niveau 3
+  addCrate(-13.0, 0, -1.6, 0.95, 1.0, 0.95);
+  addCrate(-12.6, 1.0, -2.0, 0.7, 0.7, 0.7);
+  addCrate(-5.0, 0, 1.9, 0.9, 1.0, 0.9);
+  addCrate(-4.6, 1.0, 1.5, 0.7, 0.75, 0.7);
+  addCrate(12.0, 0, 1.5, 1.0, 1.0, 1.0);
+  addCrate(12.4, 1.0, 1.9, 0.7, 0.7, 0.7);      // niveau 2
+  addCrate(11.9, 1.7, 1.2, 0.6, 0.6, 0.6);      // niveau 3
+  addCrate(19.0, 0, -1.4, 0.9, 1.0, 0.9);
+  addCrate(19.4, 1.0, -1.8, 0.65, 0.65, 0.65);
+  // caisses isolées (coutribution dispersée)
+  addCrate(-12.1, 0, 0.7, 0.65, 0.75, 0.65);
+  addCrate(20.2, 0, -0.3, 0.7, 0.8, 0.7);
+  addCrate(-1.0, 0, -2.2, 0.8, 0.9, 0.8);
+  addCrate(5.0, 0, 3.0, 0.9, 1.0, 0.9);
+  addCrate(8.0, 0, -3.0, 0.7, 0.8, 0.7);
+  addCrate(-8.0, 0, 3.2, 0.75, 0.85, 0.75);
+
+  // barils rouges explosifs
+  addBarrel(-14.5, -2.6);
+  addBarrel(11.0, -2.0);
+  addBarrel(18.0, 2.4);
+  addBarrel(-21.5, -1.0);
+  addBarrel(3.5, 3.0);
+
+  const wipe = (a, b) => { const k = a.indexOf(b); if (k >= 0) a.splice(k, 1); };
+  const destroyCrate = (b) => {
+    const e = b._crate;
+    wipe(collidables, b); wipe(blockers, b); wipe(obstacles, b); wipe(crates, e);
+    g.remove(e.mesh);
+    bus.emit('crate-debris', { pos: { x: (b.min.x + b.max.x) / 2, y: (b.min.y + b.max.y) / 2, z: (b.min.z + b.max.z) / 2 } });
+  };
+  const destroyBarrel = (b) => {
+    const e = b._barrel;
+    wipe(collidables, b); wipe(blockers, b); wipe(obstacles, b); wipe(barrels, e);
+    g.remove(e.mesh);
+    bus.emit('barrel-explode', { pos: { x: (b.min.x + b.max.x) / 2, y: (b.min.y + b.max.y) / 2, z: (b.min.z + b.max.z) / 2 }, radius: BARREL_RADIUS });
+  };
+  const onCrateHit = (b) => { b._crate.hits++; if (b._crate.hits >= CRATE_HITS) destroyCrate(b); };
+  const onBarrelHit = (b) => { b._barrel.hits++; if (b._barrel.hits >= BARREL_HITS) destroyBarrel(b); };
+
+  // --- physique d'empilement (une caisse tombe si son soutien disparaît) ---
+  const GRAV = 16;
+  const GAP = 0.15;
+  const syncBox = (c) => {
+    const b = c.box;
+    b.min.x = c.cx - c.w / 2; b.max.x = c.cx + c.w / 2;
+    b.min.y = c.cy - c.h / 2; b.max.y = c.cy + c.h / 2;
+    b.min.z = c.cz - c.d / 2; b.max.z = c.cz + c.d / 2;
+  };
+  const xzOverlap = (a, b) =>
+    Math.abs(a.cx - b.cx) < (a.w + b.w) / 2 && Math.abs(a.cz - b.cz) < (a.d + b.d) / 2;
+  const supportBelow = (c) => {
+    const bottom = c.cy - c.h / 2;
+    if (bottom - groundHeight(c.cx, c.cz) <= GAP) return true; // sol juste en dessous
+    for (const d of crates) {
+      if (d === c || d.state !== 'static' || !xzOverlap(c, d)) continue;
+      const top = d.cy + d.h / 2;
+      if (top <= bottom + 1e-3 && bottom - top <= GAP) return true; // caisse posée juste en dessous
+    }
+    return false;
+  };
+  const restY = (c) => {
+    const bottom = c.cy - c.h / 2;
+    let rest = groundHeight(c.cx, c.cz);
+    for (const d of crates) {
+      if (d === c || d.state !== 'static' || !xzOverlap(c, d)) continue;
+      const top = d.cy + d.h / 2;
+      if (top <= bottom + 1e-3 && bottom - top <= GAP && top > rest) rest = top;
+    }
+    return rest;
+  };
+  // met à jour les caisses tombantes (gravité + repos sur le sol / autres caisses)
+  const updatePhysics = (dt) => {
+    for (const c of crates) {
+      if (c.state === 'static' && !supportBelow(c)) c.state = 'falling';
+    }
+    const sub = 4, h = dt / sub;
+    for (let s = 0; s < sub; s++) {
+      for (const c of crates) {
+        if (c.state !== 'falling') continue;
+        c.vy -= GRAV * h;
+        c.cy += c.vy * h;
+        const rest = restY(c);
+        if (c.cy - c.h / 2 <= rest + 0.03) { c.cy = rest + c.h / 2; c.vy = 0; c.state = 'static'; }
+        c.mesh.position.y = c.cy;
+        syncBox(c);
+      }
+    }
+  };
 
   // ---- Issue de secours : escalier NE + porte blindée verte
   const matStep = new THREE.MeshLambertMaterial({ map: textures.concrete(), color: 0xb8b8bc });
@@ -194,5 +291,5 @@ export function buildStation(scene) {
     lightStrips.push(m);
   }
 
-  return { group: g, collidables, blockers, pillars, obstacles, exit, lightStrips, groundHeight };
+  return { group: g, collidables, blockers, pillars, obstacles, crates, barrels, exit, lightStrips, groundHeight, onCrateHit, onBarrelHit, updatePhysics };
 }

@@ -4,7 +4,7 @@ export const WEAPONS = {
   carbine: { id: 'carbine', name: 'M4 CARBINE',   auto: true,  rpm: 720, mag: 30,   reserve: 180, damage: 26, spread: 0.022, recoil: 0.75, pellets: 1, reloadTime: 1.8, range: 80, sound: 'carbine' },
   shotgun: { id: 'shotgun', name: 'M870 SHOTGUN', auto: false, rpm: 70,  mag: 7,    reserve: 35,  damage: 13, spread: 0.09,  recoil: 2.6,  pellets: 9, reloadTime: 2.6, range: 28, sound: 'shotgun' },
   saw:     { id: 'saw',     name: 'M249 SAW',     auto: true,  rpm: 780, mag: 1000, reserve: 0,   damage: 22, spread: 0.038, recoil: 0.6,  pellets: 1, reloadTime: 6.0, range: 75, sound: 'saw' },
-  minigun: { id: 'minigun', name: 'M134 MINIGUN', auto: true,  rpm: 2800, mag: 300, reserve: 0,   damage: 19, spread: 0.05,  recoil: 0.45, pellets: 1, reloadTime: 6.5, range: 70, sound: 'saw' },
+  minigun: { id: 'minigun', name: 'M134 MINIGUN', auto: true,  rpm: 3000, mag: 2000, reserve: 0,   damage: 30, spread: 0.06,  recoil: 0.35, pellets: 1, reloadTime: 8.0, range: 85, sound: 'saw' },
   bazooka: { id: 'bazooka', name: 'RPG-7',        auto: false, rpm: 30,  mag: 1,    reserve: 6,   damage: 140, spread: 0.002, recoil: 2.2, pellets: 1, reloadTime: 3.2, range: 70, sound: 'shotgun', rocket: true, splash: 5 },
 };
 

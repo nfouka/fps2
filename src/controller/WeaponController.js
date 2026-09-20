@@ -1,4 +1,4 @@
-import { raySphere, rayAABB } from '../model/Raycast.js';
+import { raySphere, rayAABB, rayAABBEntryExit } from '../model/Raycast.js';
 import { groundHeight } from '../view/SubwayStation.js';
 
 let ROCKET_SEQ = 1;
@@ -53,6 +53,7 @@ export class WeaponController {
       if (e.code === 'KeyN') this.throwNade('napalm');
     });
     bus.on('weapon-switched', () => this.setAds(false));
+    bus.on('barrel-explode', (e) => this.explode(e.pos, e.radius, 220, false));
   }
 
   setAds(on) {
@@ -182,7 +183,8 @@ export class WeaponController {
     const len = Math.hypot(dir.x, dir.y, dir.z);
     dir.x /= len; dir.y /= len; dir.z /= len;
 
-    let bestT = def.range, hitEnemy = null, head = false;
+    let bestT = def.range, hitEnemy = null, head = false, hitBox = null, crateHits = [];
+    const holes = [];
 
     for (const e of s.enemies) {
       if (!e.alive) continue;
@@ -193,15 +195,28 @@ export class WeaponController {
     }
 
     for (const b of this.station.collidables) {
+      if (b.isCrate) {
+        const hit = rayAABBEntryExit(origin, dir, b);
+        if (hit) {
+          crateHits.push(b);
+          holes.push({ p: { x: origin.x + dir.x * hit.tIn, y: origin.y + dir.y * hit.tIn, z: origin.z + dir.z * hit.tIn }, dir });
+          holes.push({ p: { x: origin.x + dir.x * hit.tOut, y: origin.y + dir.y * hit.tOut, z: origin.z + dir.z * hit.tOut }, dir });
+        }
+        continue; // les caisses pénètrent (ne bloquent pas le tir)
+      }
       const t = rayAABB(origin, dir, b);
-      if (t >= 0 && t < bestT) { bestT = t; hitEnemy = null; head = false; }
+      if (t >= 0 && t < bestT) { bestT = t; hitEnemy = null; head = false; hitBox = b; }
     }
+    // compte les pénétrations dans les caisses (après la boucle pour ne pas muter l'itération)
+    for (const b of crateHits) this.station.onCrateHit(b);
 
     const hitPoint = {
       x: origin.x + dir.x * bestT,
       y: origin.y + dir.y * bestT,
       z: origin.z + dir.z * bestT,
     };
+
+    if (holes.length) this.bus.emit('crate-holes', { holes });
 
     if (hitEnemy) {
       const killed = head ? hitEnemy.kill() : hitEnemy.damage(def.damage);
@@ -211,6 +226,7 @@ export class WeaponController {
         this.bus.emit('enemy-killed', { enemy: hitEnemy, head });
       }
     } else {
+      if (hitBox && hitBox.isBarrel) this.station.onBarrelHit(hitBox);
       this.bus.emit('miss', { point: hitPoint });
     }
 

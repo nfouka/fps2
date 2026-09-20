@@ -34,6 +34,30 @@ export function rayAABB(ro, rd, box) {
   return tmin > 0.05 ? tmin : tmax;
 }
 
+// rayon/AABB renvoie l'entrée ET la sortie (pour traces entrée/sortie).
+export function rayAABBEntryExit(ro, rd, box) {
+  const { min, max } = box;
+  let tmin = -Infinity, tmax = Infinity;
+  const axes = ['x', 'y', 'z'];
+  for (const a of axes) {
+    const d = rd[a];
+    if (Math.abs(d) < 1e-8) {
+      if (ro[a] < min[a] || ro[a] > max[a]) return null;
+    } else {
+      let t1 = (min[a] - ro[a]) / d;
+      let t2 = (max[a] - ro[a]) / d;
+      if (t1 > t2) { const tmp = t1; t1 = t2; t2 = tmp; }
+      if (t1 > tmin) tmin = t1;
+      if (t2 < tmax) tmax = t2;
+      if (tmin > tmax) return null;
+    }
+  }
+  if (tmax < 0.05) return null;
+  const tIn = tmin > 0.05 ? tmin : tmax;
+  const tOut = Math.max(tmin, tmax);
+  return { tIn, tOut };
+}
+
 // Cercle (joueur/ennemi) contre AABB en XZ — renvoie le vecteur de correction.
 export function resolveCircleAABB(px, pz, r, box) {
   const { min, max } = box;

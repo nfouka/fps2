@@ -51,16 +51,24 @@ export class PlayerController {
     if (k['KeyA'] || k['ArrowLeft']) mx -= 1;
     if (k['KeyD'] || k['ArrowRight']) mx += 1;
 
-    // gravité + sol (quai, voies, rampe, escalier de secours)
-    const gY = groundHeight(p.x, p.z);
-    if (p.y <= gY + 0.01 && p.vy <= 0) { p.y = gY; p.vy = 0; p.grounded = true; }
+    // gravité + support (quai, voies, rampe, escalier + dessus des caisses)
+    const r = p.radius;
+    let supportY = groundHeight(p.x, p.z);
+    for (const b of this.station.blockers) {
+      if (p.x + r > b.min.x && p.x - r < b.max.x && p.z + r > b.min.z && p.z - r < b.max.z) {
+        const top = b.max.y;
+        // la caisse soutient le joueur si son dessus est sous ses pieds (debout dessus)
+        if (top >= supportY - 1e-3 && top <= p.y + 0.12 && top > supportY) supportY = top;
+      }
+    }
+    if (p.vy <= 0 && p.y <= supportY + 0.02) { p.y = supportY; p.vy = 0; p.grounded = true; }
     else p.grounded = false;
     if (!p.grounded) {
       p.vy -= 12 * dt;
       p.y += p.vy * dt;
-      if (p.y < gY) { p.y = gY; p.vy = 0; }
-    } else if (gY > p.y && gY - p.y <= 0.16) {
-      p.y = gY;
+      if (p.y < supportY) { p.y = supportY; p.vy = 0; }
+    } else if (supportY > p.y && supportY - p.y <= 0.16) {
+      p.y = supportY;
     }
 
     // saut + accroupissement
@@ -91,8 +99,9 @@ export class PlayerController {
       p.bobPhase += dt * 1.2;
     }
 
-    // collisions (quai, colonnes, mobilier)
+    // collisions (quai, colonnes, mobilier) — pas de repulsion latérale si le joueur est au-dessus d'une caisse
     for (const b of this.station.blockers) {
+      if (p.y > b.max.y - 0.15) continue;
       const fix = resolveCircleAABB(p.x, p.z, p.radius, b);
       if (fix) { p.x += fix.x; p.z += fix.z; }
     }

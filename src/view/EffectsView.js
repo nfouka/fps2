@@ -19,6 +19,17 @@ export class EffectsView {
     }
     this.holeIdx = 0;
 
+    // --- traces de balle dans les caisses (entrée/sortie) ---
+    this.crateHoles = [];
+    const crateHoleGeo = new THREE.CircleGeometry(0.045, 10);
+    for (let i = 0; i < N_HOLES; i++) {
+      const m = new THREE.Mesh(crateHoleGeo, new THREE.MeshBasicMaterial({ color: 0x1c1109, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
+      m.visible = false;
+      scene.add(m);
+      this.crateHoles.push({ mesh: m, life: 0 });
+    }
+    this.crateHoleIdx = 0;
+
     // --- traces lumineuses
     this.tracers = [];
     for (let i = 0; i < N_TRACERS; i++) {
@@ -55,6 +66,29 @@ export class EffectsView {
       this.shells.push({ mesh: m, vel: new THREE.Vector3(), life: 0 });
     }
     this.shellIdx = 0;
+
+    // --- débris de caisses (morceaux de bois) ---
+    this.debris = [];
+    const debrisGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const debrisMat = new THREE.MeshLambertMaterial({ color: 0x8a6a34 });
+    for (let i = 0; i < 120; i++) {
+      const m = new THREE.Mesh(debrisGeo, debrisMat);
+      m.visible = false;
+      scene.add(m);
+      this.debris.push({ mesh: m, vel: new THREE.Vector3(), spin: new THREE.Vector3(), life: 0, resting: false });
+    }
+    this.debrisIdx = 0;
+
+    // --- poussière de destruction ---
+    this.dust = [];
+    const dustGeo = new THREE.SphereGeometry(1, 12, 10);
+    for (let i = 0; i < 8; i++) {
+      const m = new THREE.Mesh(dustGeo, new THREE.MeshBasicMaterial({ color: 0xb09a6a, transparent: true, opacity: 0, depthWrite: false }));
+      m.visible = false;
+      scene.add(m);
+      this.dust.push({ mesh: m, life: 0 });
+    }
+    this.dustIdx = 0;
 
     // --- roquettes & grenades (projectiles)
     this.projectiles = new Map();
@@ -108,6 +142,8 @@ export class EffectsView {
     bus.on('nade-end', (e) => this.removeProjectile(e.id));
     bus.on('explosion', (e) => this.spawnBoom(e));
     bus.on('fire-pool', (e) => this.spawnPool(e));
+    bus.on('crate-debris', (e) => this.spawnCrateDebris(e));
+    bus.on('crate-holes', (e) => this.spawnCrateHoles(e));
   }
 
   spawnRocket(e) {
@@ -235,6 +271,46 @@ export class EffectsView {
     h.life = 9;
   }
 
+  spawnCrateHole(p, dir) {
+    const h = this.crateHoles[this.crateHoleIdx = (this.crateHoleIdx + 1) % this.crateHoles.length];
+    h.mesh.visible = true;
+    h.mesh.position.set(p.x, p.y, p.z);
+    const n = new THREE.Vector3(-dir.x, -dir.y, -dir.z).normalize();
+    h.mesh.lookAt(h.mesh.position.clone().add(n));
+    h.mesh.translateZ(0.006);
+    // depthTest désactivé : la trace de sortie reste visible derrière le bois
+    h.mesh.material.depthTest = false;
+    h.life = 12;
+  }
+
+  spawnCrateHoles(e) {
+    for (const h of e.holes) this.spawnCrateHole(h.p, h.dir);
+  }
+
+  spawnCrateDebris(e) {
+    const c = e.pos;
+    // puff de poussière à l'explosion de la caisse
+    const dt = this.dust[this.dustIdx = (this.dustIdx + 1) % this.dust.length];
+    dt.mesh.visible = true;
+    dt.mesh.position.set(c.x, c.y, c.z);
+    dt.mesh.scale.setScalar(0.3);
+    dt.life = 0.5;
+    // vol de morceaux de bois
+    const n = 20 + (Math.random() * 8) | 0;
+    for (let i = 0; i < n; i++) {
+      const d = this.debris[this.debrisIdx = (this.debrisIdx + 1) % this.debris.length];
+      d.resting = false;
+      d.mesh.visible = true;
+      d.mesh.position.set(c.x, c.y, c.z);
+      const s = 0.4 + Math.random() * 0.9;
+      d.mesh.scale.set(s, s * (0.5 + Math.random() * 0.9), s * (0.45 + Math.random() * 0.6));
+      const a = Math.random() * Math.PI * 2, sp = 2.5 + Math.random() * 4;
+      d.vel.set(Math.cos(a) * sp, 2 + Math.random() * 4.5, Math.sin(a) * sp);
+      d.spin.set(Math.random() * 11, Math.random() * 11, Math.random() * 11);
+      d.life = 0.55 + Math.random() * 0.45;
+    }
+  }
+
   spawnBlood(p, dir) {
     const b = this.bloods[this.bloodIdx = (this.bloodIdx + 1) % N_BLOOD];
     const pos = b.pts.geometry.attributes.position.array;
@@ -288,6 +364,38 @@ export class EffectsView {
         if (s.life <= 0) s.mesh.visible = false;
       }
     }
+    for (const d of this.debris) {
+      if (d.resting) continue;
+      if (d.life > 0) {
+        d.life -= dt;
+        d.vel.y -= 14 * dt;
+        d.mesh.position.addScaledVector(d.vel, dt);
+        d.mesh.rotation.x += d.spin.x * dt;
+        d.mesh.rotation.y += d.spin.y * dt;
+        d.mesh.rotation.z += d.spin.z * dt;
+        const gy = groundHeight(d.mesh.position.x, d.mesh.position.z);
+        const r = d.mesh.scale.x * 0.05;
+        if (d.mesh.position.y < gy + r) {
+          d.mesh.position.y = gy + r;
+          if (d.vel.y < 0) d.vel.y = -d.vel.y * 0.3;
+          d.vel.x *= 0.5; d.vel.z *= 0.5;
+          if (Math.abs(d.vel.y) < 0.5) d.vel.set(0, 0, 0);
+        }
+        if (d.life <= 0) {
+          // le morceau pose sur le sol : il reste un débris visible
+          d.resting = true;
+        }
+      }
+    }
+    for (const d of this.dust) {
+      if (d.life > 0) {
+        d.life -= dt;
+        const t = 1 - d.life / 0.5;
+        d.mesh.scale.setScalar(0.3 + t * 1.7);
+        d.mesh.material.opacity = 0.5 * (1 - t);
+        if (d.life <= 0) d.mesh.visible = false;
+      }
+    }
     for (const b of this.booms) {
       if (b.life > 0) {
         b.life -= dt;
@@ -332,6 +440,9 @@ export class EffectsView {
     for (const s of this.shells) { s.life = 0; s.mesh.visible = false; }
     for (const b of this.booms) { b.life = 0; b.sphere.visible = false; b.scorch.visible = false; b.light.intensity = 0; }
     for (const p of this.pools) { p.life = 0; p.flames.material.opacity = 0; p.light.intensity = 0; }
+    for (const d of this.debris) { d.life = 0; d.resting = false; d.mesh.visible = false; }
+    for (const d of this.dust) { d.life = 0; d.mesh.visible = false; }
+    for (const h of this.crateHoles) { h.life = 0; h.mesh.visible = false; }
     for (const [id] of this.projectiles) this.removeProjectile(id);
   }
 }
