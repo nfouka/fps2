@@ -118,14 +118,19 @@ export function gunWoodTexture(base = [122, 82, 44]) {
 }
 
 export function signTexture(text, bg = '#0f3d2e', fg = '#e8f2ea') {
-  const [c, g] = makeCanvas(512, 128);
-  g.fillStyle = bg; g.fillRect(0, 0, 512, 128);
-  g.strokeStyle = fg; g.lineWidth = 6; g.strokeRect(10, 10, 492, 108);
+  const [c, g] = makeCanvas(640, 160);
+  g.fillStyle = bg; g.fillRect(0, 0, 640, 160);
+  g.strokeStyle = fg; g.lineWidth = 6; g.strokeRect(12, 12, 616, 136);
   g.fillStyle = fg;
-  g.font = 'bold 56px Arial';
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.fillText(text, 256, 66);
-  grain(g, 512, 128, 0.06, 1200);
+  g.font = 'bold 72px Arial';
+  let fs = 72;
+  while (g.measureText(text).width > 610 && fs > 14) {
+    fs -= 2;
+    g.font = `bold ${fs}px Arial`;
+  }
+  g.fillText(text, 320, 80);
+  grain(g, 640, 160, 0.06, 1200);
   return c;
 }
 

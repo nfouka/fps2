@@ -20,7 +20,7 @@ export function buildWalls(scene, station) {
   const names = ['GARE DE GRENOBLE', 'ILE PERIERE', 'BASTILLE'];
   for (const s of [1, -1]) {
     names.forEach((n, i) => {
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.05), planeTex(signTexture(n), 4.2, 1.05));
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 1.3), planeTex(signTexture(n), 5.2, 1.3));
       m.position.set(-18 + i * 18, 1.7, s * 10.98);
       m.rotation.y = s === 1 ? Math.PI : 0;
       g.add(m);
