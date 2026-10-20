@@ -224,6 +224,82 @@
   }
   input[type=range] { pointer-events: auto; width: 190px; accent-color: #f08c14; }
   #dead h2 { color: #ff5a4a; text-shadow: 0 0 26px rgba(255, 60, 40, 0.65); }
+
+  /* ---------- Menu principal (style CS2) ---------- */
+  #menu {
+    --gold: #e8b04a; --steel: #5e7ba6; --ink: #e9edf3; --mute: #8b96a8;
+    align-items: stretch; justify-content: flex-start; gap: 0;
+    color: var(--ink);
+    background:
+      linear-gradient(90deg, rgba(7,10,15,0.96) 0%, rgba(7,10,15,0.82) 38%, rgba(7,10,15,0.35) 100%),
+      radial-gradient(900px 520px at 78% 30%, rgba(94,123,166,0.28), transparent 65%),
+      radial-gradient(700px 400px at 12% 100%, rgba(232,176,74,0.14), transparent 70%),
+      #070a0f;
+  }
+  #menu::before { mask-image: linear-gradient(90deg, #000 0%, transparent 75%); opacity: 0.8; }
+  #menu .topbar {
+    display: flex; align-items: center; gap: 38px; height: 64px; padding: 0 44px;
+    background: rgba(8,11,16,0.78); backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  #menu .logo { font-size: 24px; font-weight: 600; letter-spacing: 6px; transform: skewX(-6deg); }
+  #menu .logo i { color: var(--gold); font-style: normal; }
+  #menu .nav { display: flex; gap: 6px; height: 100%; }
+  #menu .nav span {
+    display: flex; align-items: center; padding: 0 20px; height: 100%;
+    font-size: 14px; letter-spacing: 3px; color: var(--mute); text-transform: uppercase;
+    border-bottom: 3px solid transparent;
+  }
+  #menu .nav span.on { color: #fff; border-bottom-color: var(--gold); background: linear-gradient(180deg, transparent, rgba(232,176,74,0.1)); }
+  #menu .status { margin-left: auto; font-size: 12px; letter-spacing: 3px; color: var(--mute); display: flex; align-items: center; gap: 10px; }
+  #menu .status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #5fd068; box-shadow: 0 0 10px #5fd068; }
+  #menu .main { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 40px; padding: 0 44px; }
+  #menu .hero { display: flex; flex-direction: column; align-items: flex-start; gap: 22px; max-width: 560px; }
+  #menu .tag {
+    font-size: 12px; letter-spacing: 5px; color: var(--gold); text-transform: uppercase;
+    padding: 5px 12px; border: 1px solid rgba(232,176,74,0.45); background: rgba(232,176,74,0.08);
+  }
+  #menu h1 {
+    font-size: clamp(64px, 9vw, 120px); line-height: 0.95; font-weight: 600;
+    letter-spacing: 6px; text-indent: 0; transform: skewX(-6deg);
+    text-shadow: 0 4px 0 rgba(0,0,0,0.55), 0 0 40px rgba(94,123,166,0.35);
+  }
+  #menu h1 .accent { color: var(--gold); text-shadow: 0 4px 0 rgba(0,0,0,0.55), 0 0 36px rgba(232,176,74,0.45); }
+  #menu .sub { text-align: left; letter-spacing: 4px; line-height: 1.8; max-width: 460px; color: var(--mute); }
+  #menu button {
+    border-left: 0; padding: 18px 70px 18px 28px; font-size: 20px; letter-spacing: 5px;
+    color: #10141b; background: linear-gradient(180deg, #f2c25f 0%, #d79a2c 100%);
+    clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%);
+    font-weight: 600;
+  }
+  #menu button::after { content: '\25B6'; position: absolute; right: 30px; top: 50%; transform: translateY(-50%); font-size: 12px; }
+  #menu button:hover { background: linear-gradient(180deg, #ffd479 0%, #e8a93a 100%); color: #000; box-shadow: none; transform: translateX(6px); filter: drop-shadow(0 0 18px rgba(232,176,74,0.6)); }
+  #menu .lum-row { gap: 16px; color: var(--mute); }
+  #menu .side { width: min(460px, 42vw); display: flex; flex-direction: column; gap: 16px; }
+  #menu .card {
+    background: rgba(14,18,26,0.72); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08); border-top: 2px solid var(--steel);
+    padding: 20px 24px;
+  }
+  #menu .card h3 { font-size: 13px; font-weight: 500; letter-spacing: 5px; color: var(--steel); text-transform: uppercase; margin-bottom: 12px; }
+  #menu .controls { max-width: none; text-align: left; line-height: 2.5; font-size: 13px; color: var(--mute); }
+  #menu .controls b { color: var(--ink); background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.16); border-bottom-width: 2px; box-shadow: none; border-radius: 3px; }
+  #menu .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  #menu .chips span {
+    font-size: 12px; letter-spacing: 2px; padding: 5px 11px; color: var(--ink);
+    background: rgba(94,123,166,0.14); border-left: 3px solid var(--steel);
+  }
+  #menu .chips span.hot { border-left-color: var(--gold); background: rgba(232,176,74,0.14); color: var(--gold); }
+  #menu .foot {
+    height: 38px; display: flex; align-items: center; padding: 0 44px; gap: 30px;
+    font-size: 11px; letter-spacing: 3px; color: var(--mute); text-transform: uppercase;
+    background: rgba(8,11,16,0.8); border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  @media (max-width: 900px) {
+    #menu .main { flex-direction: column; justify-content: center; padding: 0 24px; overflow: auto; }
+    #menu .side { width: 100%; }
+    #menu .nav { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -259,17 +335,37 @@
   </div>
 
   <div id="menu" class="overlay">
-    <h1>DEAD <span class="accent">LINE</span></h1>
-    <div class="divider"></div>
-    <div class="sub">STATION CHATELET — 03:47 — IL NE FAUT PAS SORTIR DU QUAI</div>
-    <div class="controls">
-      <b>WASD</b> déplacement &nbsp;·&nbsp; <b>SOURIS</b> viser &nbsp;·&nbsp; <b>CLIC G</b> tirer<br/>
-      <b>MOLETTE</b> changer d'arme &nbsp;·&nbsp; <b>CLIC MOLETTE</b> recharger &nbsp;·&nbsp; <b>R</b> recharger<br/>
-      <b>[</b> / <b>]</b> luminosité &nbsp;·&nbsp; <b>ÉCHAP</b> pause<br/>
-      <span style="color:#f08c14; letter-spacing: 2px">ARSENAL : M9 · AK-47 · M4 · M870 · M249 · M134 MINIGUN (2000) · RPG-7</span>
+    <div class="topbar">
+      <div class="logo">DEAD<i>LINE</i></div>
+      <div class="nav"><span class="on">Jouer</span><span>Arsenal</span><span>Commandes</span><span>Réglages</span></div>
+      <div class="status">Serveur en ligne</div>
     </div>
-    <div class="lum-row">LUMINOSITE <input id="lum" type="range" min="0.25" max="1.6" step="0.05" value="1" /></div>
-    <button id="start-btn">ENTRER DANS LA STATION</button>
+    <div class="main">
+      <div class="hero">
+        <div class="tag">Survie · Solo</div>
+        <h1>DEAD <span class="accent">LINE</span></h1>
+        <div class="sub">STATION CHATELET — 03:47<br/>IL NE FAUT PAS SORTIR DU QUAI</div>
+        <button id="start-btn">ENTRER DANS LA STATION</button>
+        <div class="lum-row">LUMINOSITE <input id="lum" type="range" min="0.25" max="1.6" step="0.05" value="1" /></div>
+      </div>
+      <div class="side">
+        <div class="card">
+          <h3>Commandes</h3>
+          <div class="controls">
+            <b>WASD</b> déplacement &nbsp;·&nbsp; <b>SOURIS</b> viser &nbsp;·&nbsp; <b>CLIC G</b> tirer<br/>
+            <b>MOLETTE</b> changer d'arme &nbsp;·&nbsp; <b>R</b> / <b>CLIC MOLETTE</b> recharger<br/>
+            <b>[</b> / <b>]</b> luminosité &nbsp;·&nbsp; <b>ÉCHAP</b> pause
+          </div>
+        </div>
+        <div class="card">
+          <h3>Arsenal</h3>
+          <div class="chips">
+            <span>M9</span><span>AK-47</span><span>M4</span><span>M870</span><span>M249</span><span class="hot">M134 MINIGUN · 2000</span><span>RPG-7</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span>Dead Line</span><span>Station Châtelet</span><span>Vagues infinies</span></div>
   </div>
 
   <div id="pause" class="overlay" style="display:none">
