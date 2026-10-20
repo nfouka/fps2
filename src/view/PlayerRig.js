@@ -90,9 +90,26 @@ function buildSaw() {
   return g;
 }
 
+// Style CS:GO : métal noir mat (parkérisé) + bois orange verni
+let csWoodTex = null;
+const csWood = () => {
+  if (!csWoodTex) {
+    csWoodTex = new THREE.CanvasTexture(gunWoodTexture([176, 94, 38]));
+    csWoodTex.colorSpace = THREE.SRGBColorSpace;
+    csWoodTex.anisotropy = 4;
+  }
+  return new THREE.MeshStandardMaterial({ map: csWoodTex, roughness: 0.3, metalness: 0.1 });
+};
+
 function buildAk47() {
   const g = new THREE.Group();
-  const wm = pbrWood();
+  const wm = csWood();
+  // métal noir mat : on ignore la teinte d'origine, seules les variations de ton sont conservées
+  const steel = (c, rough = 0.6, m = 0.35) => {
+    const lum = ((c >> 16) & 255) * 0.3 + ((c >> 8) & 255) * 0.59 + (c & 255) * 0.11;
+    const v = Math.min(0x30, Math.round(0x0e + lum * 0.28));
+    return new THREE.MeshStandardMaterial({ color: (v << 16) | (v << 8) | (v + 3), roughness: Math.max(rough, 0.55), metalness: Math.min(m, 0.45) });
+  };
 
   // --- Boîte de culasse emboutie (style AKM) ---
   part(g, new THREE.BoxGeometry(0.076, 0.105, 0.36), steel(0x26292e, 0.4, 0.82), 0, 0.005, 0.02);
