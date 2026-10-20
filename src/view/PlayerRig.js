@@ -271,7 +271,7 @@ export class PlayerRig {
       bazooka: buildBazooka(),
     };
     for (const k in this.models) {
-      this.models[k].visible = k === 'carbine';
+      this.models[k].visible = k === 'minigun';
       this.group.add(this.models[k]);
     }
 
@@ -286,7 +286,7 @@ export class PlayerRig {
     this.flashLight = new THREE.PointLight(0xffc36a, 0, 10, 2);
     this.group.add(this.flashLight);
 
-    this.current = 'carbine';
+    this.current = 'minigun';
     this.kick = 0;
     this.kickVel = 0;
     this.flashT = 0;

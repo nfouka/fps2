@@ -17,7 +17,7 @@ export class GameState {
     this.player = new Player();
     this.enemies = [];
     this.weapons = WEAPON_ORDER.map((id) => new Weapon(WEAPONS[id]));
-    this.weaponIndex = 1;
+    this.weaponIndex = WEAPON_ORDER.indexOf('minigun');
   }
 
   weapon() { return this.weapons[this.weaponIndex]; }
@@ -45,6 +45,6 @@ export class GameState {
     this.player.reset();
     this.enemies.length = 0;
     this.weapons = WEAPON_ORDER.map((id) => new Weapon(WEAPONS[id]));
-    this.weaponIndex = 1;
+    this.weaponIndex = WEAPON_ORDER.indexOf('minigun');
   }
 }
