@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { flashTexture, gunWoodTexture } from '../core/Procedural.js';
 
 const metal = (c = 0x2b2e33) => new THREE.MeshLambertMaterial({ color: c });
@@ -225,6 +226,25 @@ function buildMinigun() {
   return g;
 }
 
+// Pièces du modèle GLB qui tournent avec le groupe de canons (axe Z, centrées sur x=0,y=0)
+const GLB_SPINNING = ['stvol_low_m134_0', 'kozhuh_low_m134_0', 'block_stvolov_low_m134_0'];
+
+function loadMinigunGLB(onLoad) {
+  new GLTFLoader().load(`${import.meta.env.BASE_URL}models/m134_handheld_minigun.glb`, (gltf) => {
+    const g = new THREE.Group();
+    const model = gltf.scene;
+    // modèle en cm, canon vers -Z, axe des canons à x=0,y=0 : même convention que le jeu
+    model.scale.setScalar(0.0013);
+    model.position.y = 0.01;
+    g.add(model);
+    const spinning = [];
+    model.traverse((o) => { if (GLB_SPINNING.includes(o.name)) spinning.push(o); });
+    g.userData.muzzle = new THREE.Vector3(0, 0.01, -0.72);
+    g.userData.spinning = spinning;
+    onLoad(g);
+  }, undefined, (err) => console.warn('M134 GLB introuvable, modèle procédural conservé', err));
+}
+
 function buildBazooka() {
   const g = new THREE.Group();
   // --- Tube de lancement (section avant + arrière) ---
@@ -292,6 +312,18 @@ export class PlayerRig {
     this.flashT = 0;
     this.spin = 0;
     this.barrels = this.models.minigun.getObjectByName('barrels');
+    this.glbSpinning = [];
+
+    // remplace le M134 procédural (conservé en secours) par le modèle GLB
+    loadMinigunGLB((glb) => {
+      const old = this.models.minigun;
+      glb.visible = old.visible;
+      this.group.remove(old);
+      this.group.add(glb);
+      this.models.minigun = glb;
+      this.glbSpinning = glb.userData.spinning;
+      this.barrels = null;
+    });
 
     bus.on('shot', (e) => {
       this.kickVel += (e.recoil || 1) * 2.4;
@@ -330,10 +362,9 @@ export class PlayerRig {
     this.group.rotation.x = this.kick * 0.12;
     this.group.rotation.z = Math.sin(p.bobPhase * 0.5) * 0.006;
 
-    if (this.barrels) {
-      this.barrels.rotation.z += this.spin * dt;
-      this.spin = Math.max(0, this.spin - 18 * dt);
-    }
+    if (this.barrels) this.barrels.rotation.z += this.spin * dt;
+    for (const o of this.glbSpinning) o.rotation.z += this.spin * dt;
+    if (this.barrels || this.glbSpinning.length) this.spin = Math.max(0, this.spin - 18 * dt);
 
     if (this.flashT > 0) {
       this.flashT -= dt;
